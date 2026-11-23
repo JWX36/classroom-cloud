@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('我的课程')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('TEACHER','courses','我的<em>课</em>程')}"></aside>
+<div class="main">
+  <!-- 本页顶栏：教学管理 › 我的课程 + 教师/待审批徽章 + 创建课程按钮 + 用户菜单 -->
+  <header class="topbar">
+    <button type="button" class="icon-btn only-mobile" data-sidebar-toggle title="菜单">
+      <svg class="icon"><use href="/img/icons.svg#i-menu"></use></svg>
+    </button>
+    <div class="topbar-crumb">
+      <a th:href="@{/teacher/courses}">教学管理</a>
+      <svg class="icon icon-xs sep"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+      <b>我的课程</b>
+    </div>
+    <div class="topbar-actions">
+      <span class="badge amber" th:text="${currentUser != null ? currentUser.roleText : ''}">教师</span>
+      <span class="badge gray" th:if="${pendingCount > 0}">待审批 <span th:text="${pendingCount}">0</span></span>
+      <div class="divider"></div>
+      <div class="user-menu">
+        <a class="user-chip" th:href="@{/profile}" title="个人中心">
+          <div class="avatar sm" th:if="${currentUser != null and currentUser.avatar != null}">
+            <img th:src="@{'/' + ${currentUser.avatar}}" alt="avatar">
+          </div>
+          <div class="avatar sm" th:if="${currentUser != null and currentUser.avatar == null}" th:text="${currentUser.initial}">江</div>
+          <span><span class="name" th:text="${currentUser != null ? currentUser.name : ''}">江文轩</span>
+                <span class="code" th:text="${currentUser != null ? currentUser.code : ''}">20240101</span></span>
+          <svg class="icon icon-sm"><use href="/img/icons.svg#i-chevron-down"></use></svg>
+        </a>
+        <div class="user-dropdown">
+          <div class="dropdown-panel">
+            <a class="dropdown-item" th:href="@{/profile}">
+              <svg class="icon"><use href="/img/icons.svg#i-user"></use></svg>个人中心
+            </a>
+            <form th:action="@{/logout}" method="post" class="dropdown-form">
+              <button type="submit" class="dropdown-item">
+                <svg class="icon"><use href="/img/icons.svg#i-logout"></use></svg>切换账号
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content content-wide">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="teacher-home">
+      <div class="home-main">
+        <!-- 裸数字统计 -->
+        <div class="figs">
+          <div class="f"><b th:text="${#lists.size(courses)}">0</b><span>全部课程</span></div>
+          <div class="f"><b th:text="${activeCount}">0</b><span>进行中</span></div>
+          <div class="f hi"><b th:text="${pendingCount}">0</b><span>待审批</span></div>
+          <div class="f"><b th:text="${assignmentTotal}">0</b><span>作业总数</span></div>
+          <a class="btn primary figs-cta" th:href="@{/teacher/courses/new}">
+            <svg class="icon"><use href="/img/icons.svg#i-plus"></use></svg>创建课程
+          </a>
+        </div>
+
+        <div class="course-grid stagger" th:if="${not #lists.isEmpty(courses)}">
+          <a class="course-card" th:each="course : ${courses}"
+             th:classappend="${course.ended} ? 'ended' : ''"
+             th:href="@{'/teacher/courses/' + ${course.id}}">
+            <div class="course-cover teacher-cover">
+              <span th:text="${#strings.substring(course.name,0,2)}">课程</span>
+              <span class="badge" th:classappend="${course.statusBadge}" th:text="${course.statusText}">进行中</span>
+            </div>
+            <div class="course-body">
+              <h3 th:text="${course.name}">Web前端框架技术</h3>
+              <p class="course-line"><b th:text="${course.className}">班级</b> · <span th:text="${course.termLabel}">学期</span></p>
+              <p class="course-class" th:if="${course.rejectReason != null}" th:text="'驳回原因：' + ${course.rejectReason}">驳回原因</p>
+              <p class="course-go" th:if="${course.isActive()}">发布作业 <svg class="icon icon-sm"><use href="/img/icons.svg#i-chevron-right"></use></svg></p>
+              <p class="course-go note" th:if="${course.status == 'PENDING'}">等待管理员审批，审批通过后即可发布作业</p>
+              <p class="course-go note" th:if="${course.status == 'REJECTED'}">审批未通过，请重新创建课程</p>
+              <p class="course-go mute" th:if="${course.ended and course.status != 'PENDING' and course.status != 'REJECTED'}">课程已结束</p>
+            </div>
+          </a>
+        </div>
+
+        <div class="card empty" th:if="${#lists.isEmpty(courses)}">
+          <div class="empty-ico"><svg class="icon"><use href="/img/icons.svg#i-book"></use></svg></div>
+          <h3>还没有课程</h3>
+          <p>点击顶栏「创建课程」，提交后等待管理员审批</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

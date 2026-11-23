@@ -1,0 +1,17 @@
+# 开发环境：H2 文件数据库，免安装 MySQL / Redis 即可运行
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/kys;MODE=MySQL;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+
+logging:
+  file:
+    name: ./logs/kys-dev.log
+  level:
+    com.example.demo: INFO

@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: demo
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  thymeleaf:
+    cache: false
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+
+server:
+  port: ${SERVER_PORT:8081}
+  tomcat:
+    # 每道题会提交多个表单字段，默认 50 个 part 在题目较多时会触发 413
+    max-part-count: 1000
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+
+app:
+  upload-dir: ${UPLOAD_DIR:./uploads}
+  cache:
+    mode: ${CACHE_MODE:simple}
+  mail:
+    enabled: ${MAIL_ENABLED:false}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('批改作业')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('TEACHER','review','批改<em>名</em>单')}"></aside>
+<div class="main">
+  <!-- 三级面包屑顶栏：教学管理 › 批改中心 › 批改作业；右侧 教师/已批阅徽章 + 用户菜单 -->
+  <header class="topbar">
+    <button type="button" class="icon-btn only-mobile" data-sidebar-toggle title="菜单">
+      <svg class="icon"><use href="/img/icons.svg#i-menu"></use></svg>
+    </button>
+    <div class="topbar-crumb">
+      <a th:href="@{/teacher/courses}">教学管理</a>
+      <svg class="icon icon-xs sep"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+      <a th:href="@{/teacher/review}">批改中心</a>
+      <svg class="icon icon-xs sep"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+      <b>批改作业</b>
+    </div>
+    <div class="topbar-actions">
+      <span class="badge amber" th:text="${currentUser != null ? currentUser.roleText : ''}">教师</span>
+      <span class="badge sage" th:if="${gradedCount > 0}">已批阅 <span th:text="${gradedCount}">0</span></span>
+      <div class="divider"></div>
+      <div class="user-menu">
+        <a class="user-chip" th:href="@{/profile}" title="个人中心">
+          <div class="avatar sm" th:if="${currentUser != null and currentUser.avatar != null}">
+            <img th:src="@{'/' + ${currentUser.avatar}}" alt="avatar">
+          </div>
+          <div class="avatar sm" th:if="${currentUser != null and currentUser.avatar == null}" th:text="${currentUser.initial}">江</div>
+          <span><span class="name" th:text="${currentUser != null ? currentUser.name : ''}">江文轩</span>
+                <span class="code" th:text="${currentUser != null ? currentUser.code : ''}">20240101</span></span>
+          <svg class="icon icon-sm"><use href="/img/icons.svg#i-chevron-down"></use></svg>
+        </a>
+        <div class="user-dropdown">
+          <div class="dropdown-panel">
+            <a class="dropdown-item" th:href="@{/profile}">
+              <svg class="icon"><use href="/img/icons.svg#i-user"></use></svg>个人中心
+            </a>
+            <form th:action="@{/logout}" method="post" class="dropdown-form">
+              <button type="submit" class="dropdown-item">
+                <svg class="icon"><use href="/img/icons.svg#i-logout"></use></svg>切换账号
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content content-wide">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="figs grading-figs" th:with="todo=${submittedCount > gradedCount ? submittedCount - gradedCount : 0}">
+      <div class="f"><b th:text="${submittedCount}">0</b><span>总提交</span></div>
+      <div class="f"><b th:text="${gradedCount}">0</b><span>已批阅</span></div>
+      <div class="f hi"><b th:text="${todo}">0</b><span>待批改</span></div>
+      <div class="f"><b th:text="${#lists.size(submissions)}">0</b><span>班级人数</span></div>
+
+      <!-- 作业标题（右上） + 发布全部成绩 -->
+      <div class="figs-right">
+        <span class="assign-title" th:text="${assignment.title}">历史成绩验证作业</span>
+        <form th:action="@{'/teacher/assignments/' + ${assignment.id} + '/publish-all'}" method="post">
+          <button type="submit" class="btn primary sm" onclick="return confirm('发布所有已批改成绩？')">
+            <svg class="icon"><use href="/img/icons.svg#i-send"></use></svg>发布全部成绩
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <p class="field-hint grading-note"
+       th:if="${assignment.hasQuestions and assignment.subjectiveScored}">
+      客观题按答案自动判分；主观题（附件）请下载批改后手动录入，未录入时保存会提示「未完成批改」。
+    </p>
+    <p class="field-hint grading-note" th:if="${!assignment.hasQuestions}">
+      本次作业没有客观题，分数全部由教师手动录入。
+    </p>
+
+    <div class="gtable-scroll">
+      <div class="gtable">
+        <div class="ghead">
+          <div class="gcol gcol-stu">学生</div>
+          <div class="gcol gcol-status">状态</div>
+          <div class="gcol gcol-time">提交时间</div>
+          <div class="gcol gcol-obj">客观</div>
+          <div class="gcol gcol-subj">主观</div>
+          <div class="gcol gcol-cmt">评语</div>
+          <div class="gcol gcol-total">合计</div>
+          <div class="gcol gcol-act">操作</div>
+        </div>
+
+        <div class="grow" th:each="s : ${submissions}">
+          <div class="gcol gcol-stu">
+            <span class="s-av" th:text="${s.studentName}">01</span>
+            <div class="s-txt">
+              <span class="s-name" th:text="${s.studentSno}">20240101</span>
+              <span class="s-sub" th:if="${s.content != null}" th:text="'说明：' + ${s.content}">提交说明</span>
+            </div>
+          </div>
+          <div class="gcol gcol-status">
+            <span class="badge" th:classappend="${s.statusBadge}" th:text="${s.gradeStatusText}">未完成批改</span>
+          </div>
+          <div class="gcol gcol-time" th:text="${s.submittedText}">时间</div>
+          <div class="gcol gcol-obj">
+            <th:block th:if="${s.missing or !assignment.hasQuestions}">—</th:block>
+            <th:block th:if="${!s.missing and assignment.hasQuestions}" th:text="${s.objectiveScoreText}">0</th:block>
+          </div>
+          <div class="gcol gcol-subj">
+            <th:block th:if="${s.missing}">
+              <input class="sc-input" type="text" value="" disabled>
+            </th:block>
+            <form th:if="${!s.missing}" th:id="'gradeForm-' + ${s.id}"
+                  th:attr="data-grade-id='gradeForm-' + ${s.id},data-objective=${s.objectiveScore ?: 0}"
+                  th:action="@{'/teacher/submissions/' + ${s.id} + '/grade'}" method="post"
+                  class="grade-form" data-grade-form>
+              <input type="hidden" name="assignmentId" th:value="${assignment.id}">
+              <input class="sc-input" type="number" name="score" min="0"
+                     th:attr="max=${assignment.subjectiveFull}" step="0.01"
+                     th:value="${s.subjectiveScoreText}"
+                     th:placeholder="${assignment.hasQuestions} ? '主观分' : '0~100'"
+                     th:required="${s.needsSubjective}">
+            </form>
+          </div>
+          <div class="gcol gcol-cmt">
+            <th:block th:if="${s.missing}"><span class="muted">—</span></th:block>
+            <th:block th:if="${!s.missing}">
+              <input class="cmt-input" name="comment" th:value="${s.teacherComment}" placeholder="评语"
+                     th:attr="form='gradeForm-' + ${s.id}">
+            </th:block>
+          </div>
+          <div class="gcol gcol-total">
+            <th:block th:if="${s.missing}">—</th:block>
+            <b th:if="${!s.missing}" data-total th:text="${s.previewTotalText}">0</b>
+          </div>
+          <div class="gcol gcol-act">
+            <a th:if="${s.filePath != null}" class="icon-link" th:href="@{'/files/submission/' + ${s.id}}"
+               title="下载附件">
+              <svg class="icon"><use href="/img/icons.svg#i-download"></use></svg>
+            </a>
+            <a class="btn ghost sm" th:classappend="${s.missing} ? 'is-disabled' : ''"
+               th:href="@{'/teacher/submissions/' + ${s.id} + '/answers'}">详情</a>
+            <th:block th:if="${!s.missing}">
+              <label class="check gcheck"><input type="checkbox" name="publish" th:checked="${s.published}"
+                                                 th:attr="form='gradeForm-' + ${s.id}"> 发布</label>
+              <button type="submit" class="btn primary sm" th:attr="form='gradeForm-' + ${s.id}">保存</button>
+            </th:block>
+            <button th:if="${s.missing}" type="button" class="btn ghost sm is-disabled">保存</button>
+          </div>
+        </div>
+
+        <div class="grow" th:if="${#lists.isEmpty(submissions)}">
+          <div class="empty" style="padding:34px 20px;width:100%">
+            <div class="empty-ico"><svg class="icon"><use href="/img/icons.svg#i-users"></use></svg></div>
+            <h3>暂无学生数据</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+(function () {
+  'use strict';
+  // 每行一个提交表单（评语/发布/保存通过 form 属性挂到行表单）：主观分输入 → 客观+主观 实时合计
+  document.querySelectorAll('.grow').forEach(function (row) {
+    var form = row.querySelector('[data-grade-form]');
+    if (!form) return;
+    var input = form.querySelector('input[name="score"]');
+    var output = row.querySelector('[data-total]');
+    if (!output) return;
+    var objective = parseFloat(form.getAttribute('data-objective')) || 0;
+    function sync() {
+      var value = input && input.value !== '' ? parseFloat(input.value) : 0;
+      if (!isFinite(value)) value = 0;
+      output.textContent = String(Math.round((objective + value) * 100) / 100);
+    }
+    if (input) input.addEventListener('input', sync);
+    sync();
+  });
+})();
+</script>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

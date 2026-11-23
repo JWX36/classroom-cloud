@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title} + ' · 课业云'">课业云</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e8a33d'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11' fill='none' stroke='%231a1209' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+
+<!--
+  ===========================================================================
+  改动约定（务必遵守）
+  ---------------------------------------------------------------------------
+  1) 本文件三个片段的签名固定不变：
+        sidebar(role, active, title)
+        topbar(current)
+        topbarBack(backUrl, backLabel)
+     任何改动都必须同步修改全部 16 个调用方，漏一个就会整页报错。
+  2) role 参数必须传大写 ADMIN / TEACHER / STUDENT，片段内是大写比较。
+  3) title 是页面竖排大标题，允许包含 <em> 包裹的强调字（模板内字面量，非用户输入）。
+  4) active 参数照常传入；实际高亮由 GlobalModelAdvice 提供的 navActive 按当前 URI 自动推断，
+     navActive 推断不到时才回落到 active，两者都不为空时以 navActive 为准。
+  5) 新增片段 topbarCrumbs(c1url, c1, c2url, c2, current)：三级面包屑顶栏（题库编辑器等页面用），
+     不影响上述三个固定签名，也不影响现有 16 个调用方。
+  ===========================================================================
+-->
+<aside class="rail" th:fragment="sidebar(role, active, title)" id="rail">
+  <!-- 竖排大标题（显示在左侧条内，进度点右侧；内容由调用方 title 参数决定） -->
+  <div class="rail-title" th:utext="${title}">我的<em>课</em>程</div>
+
+  <!-- 左侧进度点（装饰） -->
+  <div class="rail-dots" aria-hidden="true">
+    <i class="active"></i><i></i><i></i><s></s>
+  </div>
+
+  <!-- 竖排导航（navCur = URI 自动推断的 navActive，取不到才回落到 active） -->
+  <nav class="vnav">
+    <th:block th:with="navCur=${navActive != null and navActive != '' ? navActive : active}">
+    <th:block th:if="${role == 'STUDENT'}">
+      <a class="nav-item" th:classappend="${navCur == 'courses'} ? 'active' : ''" th:href="@{/student/courses}">我的课程</a>
+      <a class="nav-item" th:classappend="${navCur == 'grades'} ? 'active' : ''" th:href="@{/student/grades}">我的成绩</a>
+    </th:block>
+    <th:block th:if="${role == 'TEACHER'}">
+      <a class="nav-item" th:classappend="${navCur == 'courses'} ? 'active' : ''" th:href="@{/teacher/courses}">我的课程</a>
+      <a class="nav-item" th:classappend="${navCur == 'review'} ? 'active' : ''" th:href="@{/teacher/review}">批改中心</a>
+    </th:block>
+    <th:block th:if="${role == 'ADMIN'}">
+      <a class="nav-item" th:classappend="${navCur == 'dashboard'} ? 'active' : ''" th:href="@{/admin}">控制台</a>
+      <a class="nav-item" th:classappend="${navCur == 'students'} ? 'active' : ''" th:href="@{/admin/students}">学生名册</a>
+      <a class="nav-item" th:classappend="${navCur == 'teachers'} ? 'active' : ''" th:href="@{/admin/teachers}">教师名册</a>
+      <a class="nav-item" th:classappend="${navCur == 'accounts'} ? 'active' : ''" th:href="@{/admin/accounts}">账号管理</a>
+    </th:block>
+    <a class="nav-item" th:classappend="${navCur == 'profile'} ? 'active' : ''" th:href="@{/profile}">个人中心</a>
+    </th:block>
+  </nav>
+
+  <!-- 底部信息 -->
+  <div class="rail-meta">
+    <span th:text="${currentUser != null ? currentUser.name : '未登录'}">江文轩</span><br>
+    <span th:text="${currentUser != null ? currentUser.code : ''}">20240101</span><br>
+    <b th:text="${role == 'ADMIN'} ? '管理员后台' : (${role == 'TEACHER'} ? '教师工作台' : '学生学习空间')">学生学习空间</b>
+  </div>
+</aside>
+
+<header class="topbar" th:fragment="topbar(current)">
+  <button type="button" class="icon-btn only-mobile" data-sidebar-toggle title="菜单">
+    <svg class="icon"><use href="/img/icons.svg#i-menu"></use></svg>
+  </button>
+  <div class="topbar-crumb">
+    <span>广州华商职业学院</span>
+    <svg class="icon icon-xs sep"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+    <b th:text="${current}">我的课程</b>
+  </div>
+  <th:block th:replace="~{fragments/layout :: topbarActions}"></th:block>
+</header>
+
+<header class="topbar" th:fragment="topbarBack(backUrl, backLabel)">
+  <button type="button" class="icon-btn only-mobile" data-sidebar-toggle title="菜单">
+    <svg class="icon"><use href="/img/icons.svg#i-menu"></use></svg>
+  </button>
+  <div class="topbar-crumb">
+    <a class="crumb-back" th:href="${backUrl}" th:title="${backLabel}">
+      <svg class="icon icon-sm"><use href="/img/icons.svg#i-arrow-left"></use></svg>
+      <span th:text="${backLabel}">返回上一级</span>
+    </a>
+  </div>
+  <th:block th:replace="~{fragments/layout :: topbarActions}"></th:block>
+</header>
+
+<!-- 三级面包屑顶栏：c1/c2 为前置链接，current 为当前页名 -->
+<header class="topbar" th:fragment="topbarCrumbs(c1url, c1, c2url, c2, current)">
+  <button type="button" class="icon-btn only-mobile" data-sidebar-toggle title="菜单">
+    <svg class="icon"><use href="/img/icons.svg#i-menu"></use></svg>
+  </button>
+  <div class="topbar-crumb">
+    <a th:href="${c1url}" th:text="${c1}">我的课程</a>
+    <svg class="icon icon-xs sep"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+    <a th:href="${c2url}" th:text="${c2}">课程</a>
+    <svg class="icon icon-xs sep"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+    <b th:text="${current}">发布作业</b>
+  </div>
+  <th:block th:replace="~{fragments/layout :: topbarActions}"></th:block>
+</header>
+
+<div class="topbar-actions" th:fragment="topbarActions">
+  <span class="badge amber" th:text="${currentUser != null ? currentUser.roleText : ''}">学生</span>
+  <div class="divider"></div>
+  <div class="user-menu">
+    <a class="user-chip" th:href="@{/profile}" title="个人中心">
+      <div class="avatar sm" th:if="${currentUser != null and currentUser.avatar != null}">
+        <img th:src="@{'/' + ${currentUser.avatar}}" alt="avatar">
+      </div>
+      <div class="avatar sm" th:if="${currentUser != null and currentUser.avatar == null}" th:text="${currentUser.initial}">江</div>
+      <span><span class="name" th:text="${currentUser != null ? currentUser.name : ''}">江文轩</span>
+            <span class="code" th:text="${currentUser != null ? currentUser.code : ''}">20240101</span></span>
+      <svg class="icon icon-sm"><use href="/img/icons.svg#i-chevron-down"></use></svg>
+    </a>
+    <div class="user-dropdown">
+      <div class="dropdown-panel">
+        <a class="dropdown-item" th:href="@{/profile}">
+          <svg class="icon"><use href="/img/icons.svg#i-user"></use></svg>个人中心
+        </a>
+        <form th:action="@{/logout}" method="post" class="dropdown-form">
+          <button type="submit" class="dropdown-item">
+            <svg class="icon"><use href="/img/icons.svg#i-logout"></use></svg>切换账号
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<th:block th:fragment="flash">
+  <div class="flash success" th:if="${message}">
+    <svg class="icon"><use href="/img/icons.svg#i-check-circle"></use></svg><span th:text="${message}"></span>
+  </div>
+  <div class="flash error" th:if="${error}">
+    <svg class="icon"><use href="/img/icons.svg#i-alert"></use></svg><span th:text="${error}"></span>
+  </div>
+</th:block>
+
+<th:block th:fragment="scripts">
+  <script th:src="@{/js/app.js}"></script>
+</th:block>
+
+</body>
+</html>

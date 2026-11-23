@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('注册')}"></head>
+<body class="auth-page auth-bg">
+<div class="auth-shell">
+  <div class="auth-brand">
+    <span class="brand-mark">
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M4 7.5 12 4l8 3.5-8 3.5z"></path>
+        <path d="M6.5 11v4.2c0 1.6 2.5 3 5.5 3s5.5-1.4 5.5-3V11"></path>
+        <path d="M20 8v5.5"></path>
+      </svg>
+    </span>
+    <div>
+      <strong>课业云</strong>
+      <span>广州华商职业学院 · 班级学业管理与作业提交系统</span>
+    </div>
+  </div>
+
+  <div class="auth-card card">
+    <div class="flash error" th:if="${error}">
+      <svg class="icon"><use href="/img/icons.svg#i-alert"></use></svg><span th:text="${error}"></span>
+    </div>
+
+    <!-- 第一步：校验学号 / 教师编号 -->
+    <div th:if="${step == 1}">
+      <h1 class="auth-title">创建账号</h1>
+      <p class="auth-sub">第一步：输入学号或教师编号，系统会在管理员名册中校验</p>
+      <form th:action="@{/register/check}" method="post">
+        <div class="login-field">
+          <label for="code">学号 / 教师编号</label>
+          <div class="input-icon">
+            <svg class="icon"><use href="/img/icons.svg#i-id-card"></use></svg>
+            <input id="code" name="code" placeholder="如 20240101 或 HS010001" required autofocus>
+          </div>
+          <span class="field-hint">学号：2024 + 班级号(2位) + 班内编号(2位)；教师编号：HS + 6 位数字</span>
+        </div>
+        <button type="submit" class="btn primary lg block">下一步</button>
+      </form>
+      <p class="auth-foot">已有账号？<a th:href="@{/login}">返回登录</a></p>
+    </div>
+
+    <!-- 第二步：完善资料 -->
+    <div th:if="${step == 2}">
+      <h1 class="auth-title">完善资料</h1>
+      <p class="auth-sub">第二步：设置头像、手机号和密码</p>
+
+      <div class="roster-card" th:if="${roster != null}">
+        <div class="avatar" th:text="${roster['name']}">01</div>
+        <div>
+          <b th:text="${roster['name']}">01</b>
+          <span>
+            <span th:text="${roster['code']}">20240101</span>
+            <span class="badge purple" th:text="${roster['role'] == 'TEACHER'} ? '教师' : '学生'">学生</span>
+          </span>
+        </div>
+      </div>
+
+      <form th:action="@{/register}" method="post" enctype="multipart/form-data" th:object="${form}">
+        <input type="hidden" th:field="*{code}">
+
+        <div class="login-field">
+          <label>头像（可选）</label>
+          <input type="file" accept="image/*" th:field="*{avatar}" class="input" style="padding:9px 12px">
+          <span class="field-hint">支持 png / jpg / webp，最大 2MB，保存后可在个人中心修改</span>
+        </div>
+        <div class="login-field">
+          <label for="phone">手机号 <span style="color:#ef4444">*</span></label>
+          <input id="phone" class="input" th:field="*{phone}" placeholder="11 位手机号">
+          <span class="field-hint" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}" style="color:#dc2626"></span>
+        </div>
+        <div class="login-field">
+          <label for="email">邮箱（选填）</label>
+          <input id="email" class="input" th:field="*{email}" placeholder="用于接收作业与成绩提醒">
+          <span class="field-hint" th:if="${#fields.hasErrors('email')}" th:errors="*{email}" style="color:#dc2626"></span>
+        </div>
+        <div class="login-field">
+          <label for="password">密码 <span style="color:#ef4444">*</span></label>
+          <div class="input-icon pw-wrap">
+            <input id="password" class="input" type="password" th:field="*{password}" placeholder="至少 6 位">
+            <button type="button" class="pw-eye" data-pw-eye aria-label="显示密码">
+              <svg class="icon"><use href="/img/icons.svg#i-eye-off"></use></svg>
+            </button>
+          </div>
+          <span class="field-hint" th:if="${#fields.hasErrors('password')}" th:errors="*{password}" style="color:#dc2626"></span>
+        </div>
+        <div class="login-field">
+          <label for="confirmPassword">确认密码 <span style="color:#ef4444">*</span></label>
+          <input id="confirmPassword" class="input" type="password" th:field="*{confirmPassword}" placeholder="再次输入密码">
+          <span class="field-hint" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}" style="color:#dc2626"></span>
+        </div>
+        <span class="flash error" th:if="${#fields.hasGlobalErrors()}">
+          <svg class="icon"><use href="/img/icons.svg#i-alert"></use></svg>
+          <span th:each="err : ${#fields.globalErrors()}" th:text="${err}"></span>
+        </span>
+        <button type="submit" class="btn primary lg block">完成注册</button>
+      </form>
+      <p class="auth-foot">已有账号？<a th:href="@{/login}">返回登录</a></p>
+    </div>
+  </div>
+  <div class="auth-copyright">© 2026 广州华商职业学院 · 课业云</div>
+</div>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

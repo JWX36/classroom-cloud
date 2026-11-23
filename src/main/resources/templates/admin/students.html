@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('学生名册')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('ADMIN','students','学生<em>名</em>册')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbar('学生名册')}"></header>
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">学生名册</h1>
+        <p class="page-sub">仅管理员可见、可修改，共 <b th:text="${#lists.size(students)}">0</b> 条</p>
+      </div>
+      <div class="page-head-actions">
+        <form method="get" th:action="@{/admin/students}" class="toolbar">
+          <input class="input" name="keyword" th:value="${keyword}" placeholder="搜索学号/姓名" style="width:180px">
+          <button type="submit" class="btn ghost">搜索</button>
+        </form>
+      </div>
+    </div>
+
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="tabs" style="margin-bottom:16px">
+      <a class="tab" th:classappend="${classId == null} ? 'active' : ''" th:href="@{/admin/students}">全部</a>
+      <a class="tab" th:each="c : ${classList}" th:classappend="${classId == c.id} ? 'active' : ''"
+         th:href="@{'/admin/students?classId=' + ${c.id}}"
+         th:text="${c.name} + ' (' + ${c.studentCount} + ')'">班级</a>
+    </div>
+
+    <section class="card card-pad" style="margin-bottom:20px">
+      <h3 class="block-title">班级信息维护</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>班级名称</th><th>专业</th><th>人数</th><th class="th-right">操作</th></tr></thead>
+          <tbody>
+          <tr th:each="c : ${classList}">
+            <td colspan="3">
+              <form th:action="@{'/admin/classes/' + ${c.id} + '/update'}" method="post" class="center gap-6">
+                <input class="input" name="name" th:value="${c.name}" style="height:32px;width:230px">
+                <input class="input" name="major" th:value="${c.major}" style="height:32px;width:130px">
+                <span class="muted small" th:text="${c.studentCount} + ' 人'">0 人</span>
+                <button class="btn light sm" type="submit">保存</button>
+              </form>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="grid-2col" style="margin-bottom:20px">
+      <section class="card card-pad">
+        <h3 class="block-title">添加学生</h3>
+        <form th:action="@{/admin/students}" method="post" class="form-grid" style="gap:12px">
+          <div class="field"><label>学号</label><input class="input" name="sno" placeholder="20240101" required></div>
+          <div class="field"><label>姓名（留空取学号末两位）</label><input class="input" name="name" placeholder="01"></div>
+          <div class="field"><label>班级</label>
+            <select class="select" name="classId" required>
+              <option value="">请选择</option>
+              <option th:each="c : ${classList}" th:value="${c.id}" th:text="${c.name}">班级</option>
+            </select>
+          </div>
+          <div class="field" style="justify-content:flex-end"><button class="btn primary" type="submit">添加</button></div>
+        </form>
+      </section>
+      <section class="card card-pad">
+        <h3 class="block-title">批量导入</h3>
+        <form th:action="@{/admin/students/import}" method="post">
+          <div class="field">
+            <select class="select" name="classId" required>
+              <option value="">选择班级</option>
+              <option th:each="c : ${classList}" th:value="${c.id}" th:text="${c.name}">班级</option>
+            </select>
+          </div>
+          <div class="field mt-8">
+            <textarea class="textarea" name="text" style="min-height:72px" placeholder="每行一个：20240101,01 或 20240101"></textarea>
+          </div>
+          <button class="btn ghost mt-8" type="submit">导入</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>学号</th><th>姓名</th><th>班级</th><th class="th-right">操作</th></tr></thead>
+          <tbody>
+          <tr th:each="s : ${students}">
+            <td class="cell-strong" th:text="${s.sno}">20240101</td>
+            <td>
+              <form th:action="@{'/admin/students/' + ${s.id} + '/update'}" method="post" class="center gap-6">
+                <input type="hidden" name="classId" th:value="${classId}">
+                <input class="input" name="name" th:value="${s.name}" style="height:32px;width:90px">
+                <button class="btn light sm" type="submit">保存</button>
+              </form>
+            </td>
+            <td th:text="${classMap[s.classId] != null ? classMap[s.classId].name : '—'}">班级</td>
+            <td class="td-right">
+              <form th:action="@{'/admin/students/' + ${s.id} + '/delete'}" method="post"
+                    onsubmit="return confirm('删除该学生？')">
+                <input type="hidden" name="classId" th:value="${classId}">
+                <button class="btn danger sm" type="submit">删除</button>
+              </form>
+            </td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(students)}">
+            <td colspan="4"><div class="empty" style="padding:40px"><h3>没有学生数据</h3></div></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

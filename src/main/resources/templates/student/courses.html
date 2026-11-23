@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('我的课程')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('STUDENT','courses','我的<em>课</em>程')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbar('我的课程')}"></header>
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">我的课程</h1>
+        <p class="page-sub">
+          <span th:text="${clazz != null ? clazz.name : ''}">2024级网络技术1班</span>
+          <span class="dot-sep"></span>
+          <span th:text="${student.sno}">20240101</span>
+          <span class="dot-sep"></span>
+          <span>共 <b th:text="${#lists.size(courses)}">0</b> 门课程</span>
+        </p>
+      </div>
+    </div>
+
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="stat-grid">
+      <div class="stat">
+        <span class="stat-ico blue"><svg class="icon"><use href="/img/icons.svg#i-book"></use></svg></span>
+        <div class="stat-info"><span class="num" th:text="${#lists.size(courses)}">0</span><span class="lbl">全部课程</span></div>
+      </div>
+      <div class="stat">
+        <span class="stat-ico green"><svg class="icon"><use href="/img/icons.svg#i-check-circle"></use></svg></span>
+        <div class="stat-info"><span class="num" th:text="${activeCount}">0</span><span class="lbl">进行中</span></div>
+      </div>
+      <div class="stat">
+        <span class="stat-ico"><svg class="icon"><use href="/img/icons.svg#i-clock"></use></svg></span>
+        <div class="stat-info"><span class="num" th:text="${endedCount}">0</span><span class="lbl">已结束</span></div>
+      </div>
+    </div>
+
+    <div th:if="${not #lists.isEmpty(pinned)}" class="pinned-wrap">
+      <div class="pinned-banner" th:each="a, st : ${pinned}" th:if="${st.index < 1}">
+        <div class="pinned-icon"><svg class="icon"><use href="/img/icons.svg#i-bell"></use></svg></div>
+        <div>
+          <div class="pinned-title">
+            <span class="badge orange">置顶公告</span>
+            <b th:text="${a.title}">课程通知</b>
+            <span class="muted small" th:text="${a.courseName}">Web前端框架技术</span>
+          </div>
+          <p th:text="${a.content}">公告内容</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="course-grid stagger" th:if="${not #lists.isEmpty(courses)}">
+      <a class="course-card" th:each="course : ${courses}"
+         th:classappend="${course.ended} ? 'ended' : ''"
+         th:href="@{'/student/courses/' + ${course.id}}">
+        <div class="course-cover">
+          <span th:text="${#strings.substring(course.name,0,2)}">课程</span>
+          <span class="badge" th:classappend="${course.statusBadge}" th:text="${course.statusText}">进行中</span>
+        </div>
+        <div class="course-body">
+          <h3 th:text="${course.name}">Web前端框架技术</h3>
+          <p class="course-meta">
+            <span><svg class="icon"><use href="/img/icons.svg#i-user"></use></svg><span th:text="${course.teacherName}">詹昌明</span></span>
+            <span><svg class="icon"><use href="/img/icons.svg#i-calendar"></use></svg><span th:text="${course.termLabel}">2026年 上学期</span></span>
+          </p>
+          <p class="course-class" th:text="${course.className}">2024级网络技术1班</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="card empty" th:if="${#lists.isEmpty(courses)}">
+      <div class="empty-ico"><svg class="icon"><use href="/img/icons.svg#i-book"></use></svg></div>
+      <h3>还没有可学习的课程</h3>
+      <p>课程由教师创建并经管理员审批后才会显示在这里</p>
+    </div>
+  </main>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

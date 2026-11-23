@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('登录')}"></head>
+<body class="auth-page">
+<div class="login">
+  <section class="login-hero">
+    <div class="hero-brand">
+      <span class="brand-mark">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M4 7.5 12 4l8 3.5-8 3.5z"></path>
+          <path d="M6.5 11v4.2c0 1.6 2.5 3 5.5 3s5.5-1.4 5.5-3V11"></path>
+          <path d="M20 8v5.5"></path>
+        </svg>
+      </span>
+      <span class="brand-text"><strong>课业云</strong><span>CLASSROOM CLOUD</span></span>
+    </div>
+
+    <div class="hero-copy">
+      <p class="hero-eyebrow">广州华商职业学院 · 网络技术专业</p>
+      <h1>课业<em>云</em></h1>
+      <p>课程创建、作业发布、在线提交、批改评分、成绩发布，一套系统完成班级教学全流程。</p>
+      <div class="hero-points">
+        <span class="hero-point"><svg class="icon"><use href="/img/icons.svg#i-book"></use></svg>我的课程</span>
+        <span class="hero-point"><svg class="icon"><use href="/img/icons.svg#i-upload-cloud"></use></svg>在线提交</span>
+        <span class="hero-point"><svg class="icon"><use href="/img/icons.svg#i-award"></use></svg>成绩可查</span>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="float-card fc-1">
+        <span class="fc-ico"><svg class="icon"><use href="/img/icons.svg#i-assignment"></use></svg></span>
+        <div class="fc-body"><b>实验二：响应式数据绑定</b><span>已批阅 · 詹昌明老师</span></div>
+        <div class="fc-score">92<small>分</small></div>
+      </div>
+      <div class="float-card fc-2">
+        <span class="fc-ico" style="background:rgba(139,154,134,.24);color:#b9c9b3"><svg class="icon"><use href="/img/icons.svg#i-users"></use></svg></span>
+        <div class="fc-body"><b>4 个班级 · 200+ 学生</b><span>2024 级网络技术</span></div>
+      </div>
+    </div>
+
+    <!-- 通知卡：定位在 hero 右上空档，避免遮挡介绍文字 -->
+    <div class="float-card fc-3">
+      <span class="fc-ico" style="background:rgba(232,163,61,.20);color:var(--amber)"><svg class="icon"><use href="/img/icons.svg#i-bell"></use></svg></span>
+      <div class="fc-body"><b>新作业已发布</b><span>记得按时提交</span></div>
+    </div>
+
+    <div class="hero-foot">© 2026 广州华商职业学院 · 课业云</div>
+  </section>
+
+  <section class="login-panel">
+    <div class="login-box">
+      <h2 class="login-title">欢迎回来</h2>
+      <p class="login-sub">用学号或教师编号登录你的学习空间</p>
+
+      <div class="flash error" th:if="${param.error}">
+        <svg class="icon"><use href="/img/icons.svg#i-alert"></use></svg><span>账号或密码错误，请重试</span>
+      </div>
+      <div class="flash error" th:if="${param.locked}">
+        <svg class="icon"><use href="/img/icons.svg#i-alert"></use></svg>
+        <span>登录失败次数过多，账号已临时锁定 5 分钟，请稍后再试</span>
+      </div>
+      <div class="flash success" th:if="${param.logout}">
+        <svg class="icon"><use href="/img/icons.svg#i-check-circle"></use></svg><span>已安全退出</span>
+      </div>
+      <div class="flash success" th:if="${param.registered}">
+        <svg class="icon"><use href="/img/icons.svg#i-check-circle"></use></svg><span>注册成功，请登录</span>
+      </div>
+      <div class="flash success" th:if="${message}">
+        <svg class="icon"><use href="/img/icons.svg#i-check-circle"></use></svg><span th:text="${message}"></span>
+      </div>
+      <div class="flash error" th:if="${error}">
+        <svg class="icon"><use href="/img/icons.svg#i-alert"></use></svg><span th:text="${error}"></span>
+      </div>
+
+      <form th:action="@{/login}" method="post" autocomplete="off" style="margin-top:18px">
+        <div class="login-field">
+          <label for="code">学号 / 教师编号</label>
+          <div class="input-icon">
+            <svg class="icon"><use href="/img/icons.svg#i-id-card"></use></svg>
+            <input id="code" name="code" placeholder="如 20240101 或 HS010001" required autofocus>
+          </div>
+        </div>
+        <div class="login-field">
+          <label for="password">密码</label>
+          <div class="input-icon">
+            <svg class="icon"><use href="/img/icons.svg#i-lock"></use></svg>
+            <input id="password" name="password" type="password" placeholder="请输入密码" required>
+            <button type="button" class="pw-eye" data-pw-eye aria-label="显示密码">
+              <svg class="icon"><use href="/img/icons.svg#i-eye-off"></use></svg>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn primary lg block">登 录</button>
+      </form>
+
+      <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--text-3)">
+        还没有账号？<a th:href="@{/register}" style="color:var(--amber);font-weight:600">立即注册</a>
+      </p>
+
+      <div class="login-hint">
+        演示账号：学生 <b>20240101 / 123456</b> · 教师 <b>HS010001 / 123456</b> · 管理员 <b>admin / admin123</b>
+      </div>
+    </div>
+    <div class="login-foot">课业云 · 广州华商职业学院</div>
+  </section>
+</div>
+<script th:src="@{/js/app.js}"></script>
+<script>
+(function loginCsrfHeal() {
+  var form = document.querySelector('form[action="/login"], form[action$="/login"]');
+  if (!form) return;
+  var retried = false;
+  form.addEventListener('submit', function (e) {
+    if (retried) return;
+    e.preventDefault();
+    retried = true;
+    fetch(form.action, { method: 'POST', body: new FormData(form), redirect: 'follow' })
+      .then(function (res) {
+        var url = res.url || '';
+        if (/login\?error/.test(url)) { window.location.href = '/login?error'; return null; }
+        if (res.status === 403) {
+          // 令牌失效：重新取登录页令牌后自动重试一次
+          return fetch('/login', { redirect: 'follow' }).then(function (r2) { return r2.text(); }).then(function (html) {
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var fresh = doc.querySelector('input[name="_csrf"]');
+            var cur = form.querySelector('input[name="_csrf"]');
+            if (fresh && cur && fresh.value) { cur.value = fresh.value; form.submit(); }
+            else { window.location.href = '/login'; }
+          });
+        }
+        window.location.href = url || '/';
+        return null;
+      })
+      .catch(function () { window.location.href = '/login'; });
+  });
+})();
+</script>
+
+</html>

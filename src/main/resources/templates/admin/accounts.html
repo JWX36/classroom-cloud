@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('账号管理')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('ADMIN','accounts','账号管理')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbar('账号管理')}"></header>
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">账号管理</h1>
+        <p class="page-sub">
+          注册账号共 <b th:text="${totalCount}">0</b> 个，删除账号后该用户将无法登录
+          <th:block th:if="${q != null}"> · 关键词「<span th:text="${q}"></span>」匹配 <b th:text="${#lists.size(accounts)}">0</b> 个</th:block>
+        </p>
+      </div>
+      <div class="page-head-actions">
+        <form th:action="@{/admin/accounts}" method="get" role="search" class="accounts-search">
+          <div class="search-join">
+            <div class="search-box">
+              <svg class="icon"><use href="/img/icons.svg#i-search"></use></svg>
+              <input class="input" type="search" name="q" th:value="${q}" maxlength="50" placeholder="搜索账号 / 姓名">
+            </div>
+            <button class="btn primary" type="submit">搜索</button>
+          </div>
+          <a class="btn ghost sm" th:if="${q != null}" th:href="@{/admin/accounts}">重置</a>
+        </form>
+      </div>
+    </div>
+
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+          <tr><th>账号</th><th>姓名</th><th>角色</th><th>手机号</th><th>邮箱</th><th>注册时间</th><th class="th-right">操作</th></tr>
+          </thead>
+          <tbody>
+          <tr th:each="u : ${accounts}">
+            <td class="cell-strong" th:text="${u.code}">20240101</td>
+            <td>
+              <div class="stu-cell">
+                <div class="avatar sm" th:if="${u.avatar != null}"><img th:src="@{'/' + ${u.avatar}}" alt=""></div>
+                <div class="avatar sm" th:if="${u.avatar == null}" th:text="${u.initial}">01</div>
+                <span th:text="${u.name}">01</span>
+              </div>
+            </td>
+            <td><span class="badge purple" th:text="${u.roleText}">学生</span></td>
+            <td th:text="${u.phone}">手机号</td>
+            <td th:text="${u.email ?: '—'}">邮箱</td>
+            <td th:text="${u.createdAt}">时间</td>
+            <td class="td-right">
+              <form th:if="${currentUser.id != u.id}" th:action="@{'/admin/accounts/' + ${u.id} + '/delete'}"
+                    method="post" onsubmit="return confirm('删除该账号？该用户将无法再登录')">
+                <button class="btn danger sm" type="submit">删除账号</button>
+              </form>
+              <span class="muted small" th:if="${currentUser.id == u.id}">当前账号</span>
+            </td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(accounts)}">
+            <td colspan="7">
+              <div class="empty" style="padding:34px 20px">
+                <div class="empty-ico"><svg class="icon"><use href="/img/icons.svg#i-search"></use></svg></div>
+                <h3>没有匹配的账号</h3>
+                <p>换个关键词试试，或点击「重置」查看全部账号</p>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('出错了')}"></head>
+<body class="auth-page auth-bg">
+<div class="auth-shell" style="max-width:560px">
+  <div class="auth-brand">
+    <span class="brand-mark">
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M4 7.5 12 4l8 3.5-8 3.5z"></path>
+        <path d="M6.5 11v4.2c0 1.6 2.5 3 5.5 3s5.5-1.4 5.5-3V11"></path>
+        <path d="M20 8v5.5"></path>
+      </svg>
+    </span>
+    <div><strong>课业云</strong><span>广州华商职业学院</span></div>
+  </div>
+  <div class="card card-pad" style="text-align:center">
+    <div class="empty-ico" style="margin-bottom:14px"><svg class="icon"><use href="/img/icons.svg#i-alert"></use></svg></div>
+    <h1 style="font-size:34px;font-weight:700" th:text="${status ?: 500}">500</h1>
+    <p class="muted" style="margin-top:8px" th:if="${status == 413}">上传内容超过限制：作业附件最大 50MB，请压缩后重试</p>
+    <p class="muted" style="margin-top:8px" th:unless="${status == 413}"
+       th:text="${message ?: '服务器开小差了，请稍后重试'}">错误信息</p>
+    <p class="muted small" th:if="${path}" th:text="${path}">/path</p>
+    <div class="center gap-10" style="justify-content:center;margin-top:24px">
+      <a class="btn primary" th:href="@{/}">返回首页</a>
+      <a class="btn ghost" th:href="@{/login}">重新登录</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

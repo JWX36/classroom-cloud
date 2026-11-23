@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${assignment.title})}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('STUDENT','courses','作业详情')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbarBack(@{'/student/courses/' + ${course.id}}, '返回课程')}"></header>
+  <main class="content">
+    <div class="crumb">
+      <a th:href="@{/student/courses}">我的课程</a>
+      <svg class="icon"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+      <a th:href="@{'/student/courses/' + ${course.id}}" th:text="${course.name}">课程</a>
+      <svg class="icon"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+      <span class="current" th:text="${assignment.title}">作业</span>
+    </div>
+
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="assignment-layout">
+      <!-- 巨型分数水印（仅已发布成绩时显示） -->
+      <div class="score-watermark" th:if="${submission != null and submission.published}"
+           th:text="${submission.scoreText}">92</div>
+      <div>
+        <section class="card">
+          <div class="assignment-detail-head">
+            <div>
+              <span class="badge purple">个人作业</span>
+              <h1 th:text="${assignment.title}">实验一</h1>
+              <p class="muted">
+                <span th:text="${course.name}">课程</span> ·
+                截止 <b th:text="${assignment.deadlineText}">2026-11-20</b>
+                <span class="badge red" th:if="${assignment.expired}">已截止</span>
+              </p>
+            </div>
+            <div class="detail-score" th:if="${submission != null and submission.published}">
+              <div class="val"><span th:text="${submission.scoreText}">92</span><small>分</small></div>
+              <div class="lbl">教师评分</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <h3 class="block-title">作业要求</h3>
+            <div class="paper-card">
+              <p class="requirement" th:text="${assignment.requirement ?: '暂无具体要求'}">要求</p>
+            </div>
+
+            <div class="attach-block" th:if="${assignment.hasAttachment}">
+              <div class="attach-head">
+                <svg class="icon"><use href="/img/icons.svg#i-paperclip"></use></svg>附件区
+                <span class="count">（教师提供的作业资料）</span>
+              </div>
+              <div class="file-row">
+                <span class="file-badge docx">FILE</span>
+                <div class="file-info">
+                  <div class="file-name" th:text="${assignment.attachmentName}">附件</div>
+                  <div class="file-meta">点击右侧按钮下载</div>
+                </div>
+                <a class="btn light sm" th:href="@{'/files/assignment/' + ${assignment.id}}">
+                  <svg class="icon"><use href="/img/icons.svg#i-download"></use></svg>下载
+                </a>
+              </div>
+            </div>
+
+            <div class="grade-result" th:if="${submission != null and submission.published}">
+              <div class="grade-result-head">
+                <span class="badge green">成绩已发布</span>
+                <span class="muted small" th:text="'批阅时间：' + ${submission.gradedAt}">批阅时间</span>
+              </div>
+              <div class="grade-result-score">
+                <strong th:text="${submission.scoreText}">92</strong><span>分</span>
+                <p class="score-source" th:text="${submission.scoreBreakdownText}">客观 0 + 主观 0</p>
+                <p th:text="${submission.teacherComment ?: '老师暂无评语'}">评语</p>
+              </div>
+            </div>
+
+            <div class="grade-result" th:if="${submission != null and !submission.published}">
+              <div class="grade-result-head">
+                <span class="badge orange"
+                      th:text="${submission.graded ? '成绩待发布' : (submission.missing ? '未提交' : '教师尚未批改')}">教师尚未批改</span>
+                <span class="muted small">客观题已自动判分，主观题（附件）需教师下载批改后录入</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card mt-20" th:if="${not #lists.isEmpty(assignment.questions)}">
+          <div class="card-head">
+            <h2><span class="card-title-dot"></span>作答题目</h2>
+            <span class="muted small" th:text="${#lists.size(assignment.questions)} + ' 道题'">0 道题</span>
+          </div>
+          <div class="card-body">
+            <article class="q-card" th:each="q, qStat : ${assignment.questions}" style="margin-bottom:14px;border:1px solid var(--border)">
+              <div class="q-head">
+                <span class="q-no" th:text="${qStat.count}">1</span>
+                <div class="q-stem">
+                  <span th:text="${q.stem}">题干</span>
+                  <span class="badge gray" style="margin-left:6px" th:text="${q.typeText}">单选题</span>
+                </div>
+                <span class="q-score" th:text="${q.scoreText} + ' 分'">10 分</span>
+              </div>
+              <div class="q-options">
+                <label class="opt" th:each="opt : ${q.optionList}">
+                  <input form="submitForm"
+                         th:attr="type=${q.multiple ? 'checkbox' : 'radio'}"
+                         th:name="|answer_${q.id}|" th:value="${opt['key']}"
+                         th:checked="${#strings.contains(assignment.answers[q.id] ?: '', opt['key'])}"
+                         th:disabled="${!canSubmit}">
+                  <span class="opt-key" th:text="${opt['key']}">A</span>
+                  <span class="opt-text" th:text="${opt['text']}">选项</span>
+                </label>
+              </div>
+              <p class="field-hint" th:if="${q.multiple}">多选题：全部选对得满分，部分正确（不含错误项）得一半分，含错误选项不得分</p>
+              <p class="field-hint" th:if="${!canSubmit}">作业已截止，无法修改答案</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="card mt-20" th:if="${submission != null and not #lists.isEmpty(gradeHistory)}">
+          <div class="card-head">
+            <h2><span class="card-title-dot"></span>历史成绩</h2>
+            <span class="muted small" th:text="${#lists.size(gradeHistory)} + ' 条记录'">0 条</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>得分</th><th>教师评语</th><th>批阅时间</th><th>该次提交时间</th></tr></thead>
+              <tbody>
+              <tr th:each="h : ${gradeHistory}">
+                <td><span class="score-cell" th:text="${h.scoreText} + ' 分'">85 分</span></td>
+                <td class="muted" th:text="${h.teacherComment ?: '—'}">评语</td>
+                <td th:text="${h.gradedText}">时间</td>
+                <td th:text="${h.attemptText}">时间</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card mt-20" th:if="${submission != null}">
+          <div class="card-head">
+            <h2><span class="card-title-dot"></span>我的提交</h2>
+            <span class="badge" th:classappend="${submission.statusBadge}" th:text="${submission.statusText}">已提交</span>
+          </div>
+          <div class="card-body">
+            <div class="aside-list">
+              <div class="aside-line"><span>提交时间</span><b th:text="${submission.submittedText}">2026-01-01</b></div>
+              <div class="aside-line" th:if="${submission.fileName != null}">
+                <span>提交附件</span>
+                <a th:href="@{'/files/submission/' + ${submission.id}}" class="btn-link">
+                  <span th:text="${submission.fileName}">文件</span>
+                </a>
+              </div>
+              <div class="aside-line" th:if="${submission.content != null}">
+                <span>提交说明</span><b th:text="${submission.content}">说明</b>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="assignment-side">
+        <div class="card card-pad">
+          <h3 class="block-title" th:text="${submission == null} ? '提交作业' : '修改提交'">提交作业</h3>
+          <p class="muted small" th:if="${!canSubmit}">作业已截止或课程已结束，无法提交或修改。</p>
+          <form id="submitForm" th:if="${canSubmit}" th:action="@{'/student/assignments/' + ${assignment.id} + '/submit'}"
+                method="post" enctype="multipart/form-data">
+            <div class="field">
+              <label for="content">提交说明</label>
+              <textarea id="content" class="textarea" name="content" style="min-height:130px"
+                        placeholder="可填写实验小结、实现思路等" th:text="${submission != null ? submission.content : ''}"></textarea>
+            </div>
+            <div class="field mt-12">
+              <label for="file">上传附件 <span class="req">*</span></label>
+              <input id="file" class="input" type="file" name="file" style="padding:9px 12px">
+              <span class="field-hint">支持 doc/docx/pdf/zip/rar/图片，单个最大 50MB</span>
+              <span class="field-hint" th:if="${submission != null and submission.fileName != null}">
+                当前附件：<span th:text="${submission.fileName}"></span>（重新上传会覆盖）
+              </span>
+            </div>
+            <button type="submit" class="btn primary block mt-16" th:text="${submission == null} ? '提交作业' : '保存修改'">提交作业</button>
+          </form>
+        </div>
+        <div class="card card-pad mt-16">
+          <h3 class="block-title">作业信息</h3>
+          <div class="aside-list">
+            <div class="aside-line"><span>课程</span><b th:text="${course.name}">课程</b></div>
+            <div class="aside-line"><span>满分</span><b>100 分</b></div>
+            <div class="aside-line"><span>客观题</span><b th:text="${assignment.objectiveFullText} + ' 分'">100 分</b></div>
+            <div class="aside-line" th:if="${assignment.subjectiveScored}">
+              <span>主观题（附件）</span><b th:text="${assignment.subjectiveFullText} + ' 分'">0 分</b>
+            </div>
+            <div class="aside-line"><span>截止时间</span><b th:text="${assignment.deadlineText}">截止</b></div>
+            <div class="aside-line"><span>作业状态</span><b th:text="${assignment.expired} ? '已截止' : '进行中'">进行中</b></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

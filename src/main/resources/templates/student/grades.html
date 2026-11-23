@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('我的成绩')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('STUDENT','grades','我的<em>成</em>绩')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbar('我的成绩')}"></header>
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">我的成绩</h1>
+        <p class="page-sub">只显示教师已发布的成绩 · 共 <b th:text="${#lists.size(submissions)}">0</b> 条</p>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-info"><span class="num hi" th:text="${scoreMax}">0</span><span class="lbl">最高分</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-info"><span class="num" th:text="${scoreAvg}">0</span><span class="lbl">平均分</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-info"><span class="num" th:text="${scoreCount}">0</span><span class="lbl">已发布成绩</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-info"><span class="num" th:text="${scoreTotal}">0</span><span class="lbl">全部提交</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+          <tr>
+            <th>课程</th>
+            <th>作业</th>
+            <th>提交时间</th>
+            <th>批阅时间</th>
+            <th>得分</th>
+            <th>教师评语</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="s : ${submissions}">
+            <td class="cell-main" th:text="${s.courseName}">课程</td>
+            <td th:text="${s.assignmentTitle}">作业</td>
+            <td th:text="${s.submittedText}">时间</td>
+            <td th:text="${s.gradedAt}">时间</td>
+            <td><span class="score-cell" th:text="${s.scoreText} + ' 分'">92 分</span></td>
+            <td class="muted" th:text="${s.teacherComment ?: '—'}">评语</td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(submissions)}">
+            <td colspan="6">
+              <div class="empty" style="padding:50px 20px">
+                <div class="empty-ico"><svg class="icon"><use href="/img/icons.svg#i-award"></use></svg></div>
+                <h3>还没有已发布的成绩</h3>
+                <p>老师批改并发布成绩后会显示在这里</p>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('控制台')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('ADMIN','dashboard','系统<em>管</em>理')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbar('控制台')}"></header>
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">控制台</h1>
+        <p class="page-sub">广州华商职业学院 · 班级学业管理与作业提交系统</p>
+      </div>
+      <div class="page-head-actions">
+        <form th:action="@{/admin/stats/run}" method="post">
+          <button type="submit" class="btn ghost">
+            <svg class="icon"><use href="/img/icons.svg#i-refresh"></use></svg>生成上月统计
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="stat-grid iconic">
+      <div class="stat">
+        <span class="stat-ico blue"><svg class="icon"><use href="/img/icons.svg#i-users"></use></svg></span>
+        <div class="stat-info"><span class="num" th:text="${stats['students']}">0</span><span class="lbl">学生名册</span></div>
+      </div>
+      <div class="stat">
+        <span class="stat-ico"><svg class="icon"><use href="/img/icons.svg#i-id-card"></use></svg></span>
+        <div class="stat-info"><span class="num" th:text="${stats['teachers']}">0</span><span class="lbl">教师名册</span></div>
+      </div>
+      <div class="stat">
+        <span class="stat-ico green"><svg class="icon"><use href="/img/icons.svg#i-user"></use></svg></span>
+        <div class="stat-info"><span class="num" th:text="${stats['accounts']}">0</span><span class="lbl">注册账号</span></div>
+      </div>
+      <div class="stat">
+        <span class="stat-ico orange"><svg class="icon"><use href="/img/icons.svg#i-alert"></use></svg></span>
+        <div class="stat-info"><span class="num" th:text="${stats['pending']}">0</span><span class="lbl">待审批课程</span></div>
+      </div>
+    </div>
+
+    <section class="card mt-20" th:if="${not #lists.isEmpty(pendingCourses)}">
+      <div class="card-head">
+        <h2><span class="card-title-dot"></span>待审批课程</h2>
+        <span class="badge orange" th:text="${#lists.size(pendingCourses)} + ' 门'">0 门</span>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+          <tr><th>课程</th><th>教师</th><th>班级</th><th>学期</th><th>提交时间</th><th class="th-right">审批</th></tr>
+          </thead>
+          <tbody>
+          <tr th:each="c : ${pendingCourses}">
+            <td class="cell-main" th:text="${c.name}">课程</td>
+            <td th:text="${c.teacherName}">教师</td>
+            <td th:text="${c.className}">班级</td>
+            <td th:text="${c.termLabel}">学期</td>
+            <td th:text="${c.createdAt}">时间</td>
+            <td>
+              <div class="actions">
+                <form th:action="@{'/admin/courses/' + ${c.id} + '/approve'}" method="post">
+                  <button type="submit" class="btn primary sm">通过</button>
+                </form>
+                <form th:action="@{'/admin/courses/' + ${c.id} + '/reject'}" method="post" class="center gap-6">
+                  <input class="input" name="reason" placeholder="驳回原因" style="height:30px;width:130px;font-size:12px">
+                  <button type="submit" class="btn danger sm">驳回</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card mt-20">
+      <div class="card-head">
+        <h2><span class="card-title-dot"></span>全部课程</h2>
+        <span class="muted small" th:text="${#lists.size(courses)} + ' 门'">0 门</span>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+          <tr><th>课程</th><th>教师</th><th>班级</th><th>学期</th><th>状态</th></tr>
+          </thead>
+          <tbody>
+          <tr th:each="c : ${courses}">
+            <td class="cell-main" th:text="${c.name}">课程</td>
+            <td th:text="${c.teacherName}">教师</td>
+            <td th:text="${c.className}">班级</td>
+            <td th:text="${c.termLabel}">学期</td>
+            <td><span class="badge" th:classappend="${c.statusBadge}" th:text="${c.statusText}">状态</span></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card mt-20">
+      <div class="card-head">
+        <h2><span class="card-title-dot"></span>月度提交率统计</h2>
+        <span class="muted small">每月 1 日凌晨自动生成</span>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>月份</th><th>班级</th><th>提交率</th><th>生成时间</th></tr></thead>
+          <tbody>
+          <tr th:each="s : ${monthlyStats}">
+            <td th:text="${s.statMonth}">2026-10</td>
+            <td th:text="${s.className}">班级</td>
+            <td><span class="badge green" th:text="${s.submissionRate} + '%'">0%</span></td>
+            <td th:text="${s.createdAt}">时间</td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(monthlyStats)}">
+            <td colspan="4" class="muted">暂无统计，点击右上角「生成上月统计」</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('发布作业')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('TEACHER','courses','发布<em>作</em>业')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbarCrumbs(@{'/teacher/courses'}, '教学管理', @{'/teacher/courses/' + ${course.id}}, ${course.name}, ${editing} ? '编辑作业' : '发布作业')}"></header>
+  <main class="content">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <form id="assignmentForm" class="assign-editor" th:attr="data-editing=${editing}"
+          th:action="${editing} ? @{'/teacher/assignments/' + ${assignment.id}} : @{'/teacher/courses/' + ${course.id} + '/assignments'}"
+          method="post" enctype="multipart/form-data" th:object="${form}">
+      <!-- 顶部紧凑字段行：标题 / 截止时间 / 附件 -->
+      <div class="assign-top">
+        <div class="field">
+          <label for="title">作业标题 <span class="req">*</span></label>
+          <input id="title" class="input" th:field="*{title}" placeholder="例如：实验三：组件通信">
+          <span class="field-hint error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></span>
+        </div>
+        <div class="field">
+          <label for="deadline">截止时间 <span class="req">*</span></label>
+          <input id="deadline" class="input" type="datetime-local" th:field="*{deadline}">
+          <span class="field-hint error" th:if="${#fields.hasErrors('deadline')}" th:errors="*{deadline}"></span>
+        </div>
+        <div class="field">
+          <label for="attachment">上传附件</label>
+          <input id="attachment" class="input input-file" type="file" th:field="*{attachment}" style="padding:9px 12px">
+          <span class="field-hint" th:if="${editing and assignment.hasAttachment}">
+            当前附件：<span th:text="${assignment.attachmentName}"></span>（重新上传会覆盖）
+          </span>
+        </div>
+      </div>
+
+      <!-- 作业要求：全字段保留，紧凑单行 -->
+      <div class="field assign-req">
+        <label for="requirement">作业要求</label>
+        <textarea id="requirement" class="textarea" th:field="*{requirement}"
+                  placeholder="请描述作业内容、提交要求和评分标准"></textarea>
+      </div>
+
+      <div class="editor-grid">
+        <!-- 左列：题库 -->
+        <section class="qlist-col">
+          <div id="questionList" class="question-list">
+            <div class="question-edit" th:each="q, qStat : ${questions}" data-question>
+              <div class="qe-head">
+                <span class="qe-no" data-q-no th:text="${qStat.count}">1</span>
+                <select name="qType" class="select qe-type">
+                  <option value="SINGLE" th:selected="${q.type == 'SINGLE'}">单选题</option>
+                  <option value="MULTIPLE" th:selected="${q.type == 'MULTIPLE'}">多选题</option>
+                  <option value="JUDGE" th:selected="${q.type == 'JUDGE'}">判断题</option>
+                </select>
+                <span class="qe-lbl">正确答案</span>
+                <input name="qCorrect" class="input qe-correct"
+                       th:value="${q.judge ? (q.correctAnswer == 'A' ? '对' : '错') : q.correctAnswer}"
+                       th:placeholder="${q.multiple} ? 'A,B' : (${q.judge} ? '对 或 错' : 'A')">
+                <span class="qe-score"><b class="q-score-live" data-q-score th:text="${q.score}">0</b> 分</span>
+                <button type="button" class="btn sm danger" data-question-action>
+                  <svg class="icon"><use href="/img/icons.svg#i-trash"></use></svg>删除
+                </button>
+              </div>
+              <textarea name="qStem" class="textarea qe-stem" th:text="${q.stem}" placeholder="请输入题干"></textarea>
+              <div class="qe-opts" data-options th:style="${q.judge} ? 'display:none' : ''">
+                <div class="qe-opt"><span class="k" data-opt-chip="A">A</span><input name="qOptionA" th:value="${q.optionA}" placeholder="选项 A"></div>
+                <div class="qe-opt"><span class="k" data-opt-chip="B">B</span><input name="qOptionB" th:value="${q.optionB}" placeholder="选项 B"></div>
+                <div class="qe-opt"><span class="k" data-opt-chip="C">C</span><input name="qOptionC" th:value="${q.optionC}" placeholder="选项 C（可空）"></div>
+                <div class="qe-opt"><span class="k" data-opt-chip="D">D</span><input name="qOptionD" th:value="${q.optionD}" placeholder="选项 D（可空）"></div>
+              </div>
+            </div>
+          </div>
+          <div class="empty-mini" id="questionEmpty" th:if="${#lists.isEmpty(questions)}">
+            还没有题目：不添加题目即发布为附件型作业，学生下载附件完成并上传提交。
+          </div>
+          <div class="q-add-card">
+            <button type="button" class="btn light sm" id="addQuestionBtn">
+              <svg class="icon"><use href="/img/icons.svg#i-plus"></use></svg>添加题目
+            </button>
+            <p class="hint">判断题只需填写题干和答案（对 / 错）；多选题答案用英文逗号分隔，如 A,B。计分：多选题全对满分，部分正确（不含错误项）得一半分，含错误项 0 分。</p>
+          </div>
+        </section>
+
+        <!-- 右列：评分设置 + 发布 -->
+        <aside class="plan-col">
+          <div class="score-plan" data-score-plan>
+            <div class="score-plan-head">
+              <h4 class="score-plan-title">评分设置 <span class="muted small">满分 100 分</span></h4>
+            </div>
+            <div class="seg" data-score-mode-group>
+              <button type="button" class="seg-btn" data-score-mode="EVEN"
+                      th:classappend="${form.scoreMode == 'CUSTOM'} ? '' : 'active'">平均分配</button>
+              <button type="button" class="seg-btn" data-score-mode="CUSTOM"
+                      th:classappend="${form.scoreMode == 'CUSTOM'} ? 'active' : ''">按题型自定义</button>
+            </div>
+            <input type="hidden" name="scoreMode" id="scoreMode" th:value="${form.scoreMode ?: 'EVEN'}">
+            <div class="score-plan-body">
+              <div class="score-donut-wrap">
+                <div class="score-donut" data-score-donut aria-hidden="true"></div>
+                <div class="score-donut-center">
+                  <b class="val" data-score-objective>100</b>
+                  <span class="lbl">客观题满分</span>
+                </div>
+              </div>
+              <div class="score-legend" data-score-legend></div>
+              <div class="score-pcts" data-score-custom hidden>
+                <label class="score-pct"><span class="dot" style="background:#5b5bd6"></span><span>单选</span>
+                  <input type="number" name="singlePercent" min="0" max="100" step="5"
+                         th:value="${form.singlePercent == null ? 0 : form.singlePercent.stripTrailingZeros().toPlainString()}">
+                </label>
+                <label class="score-pct"><span class="dot" style="background:#e8a33d"></span><span>多选</span>
+                  <input type="number" name="multiplePercent" min="0" max="100" step="5"
+                         th:value="${form.multiplePercent == null ? 0 : form.multiplePercent.stripTrailingZeros().toPlainString()}">
+                </label>
+                <label class="score-pct"><span class="dot" style="background:#8b9a86"></span><span>判断</span>
+                  <input type="number" name="judgePercent" min="0" max="100" step="5"
+                         th:value="${form.judgePercent == null ? 0 : form.judgePercent.stripTrailingZeros().toPlainString()}">
+                </label>
+                <label class="score-pct"><span class="dot" style="background:#c4562a"></span><span>附件</span>
+                  <input type="number" name="attachmentPercent" min="0" max="100" step="5"
+                         th:value="${form.attachmentPercent == null ? 0 : form.attachmentPercent.stripTrailingZeros().toPlainString()}">
+                </label>
+              </div>
+              <p class="field-hint" data-score-hint></p>
+            </div>
+            <div class="plan-actions">
+              <a class="btn ghost" th:href="@{'/teacher/courses/' + ${course.id}}">取消</a>
+              <button type="submit" class="btn primary" th:text="${editing} ? '保存修改' : '发布作业'">发布作业</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </form>
+
+    <template id="questionTemplate">
+      <div class="question-edit" data-question>
+        <div class="qe-head">
+          <span class="qe-no" data-q-no>1</span>
+          <select name="qType" class="select qe-type">
+            <option value="SINGLE">单选题</option>
+            <option value="MULTIPLE">多选题</option>
+            <option value="JUDGE">判断题</option>
+          </select>
+          <span class="qe-lbl">正确答案</span>
+          <input name="qCorrect" class="input qe-correct" placeholder="A">
+          <span class="qe-score"><b class="q-score-live" data-q-score>0</b> 分</span>
+          <button type="button" class="btn sm danger" data-question-action>
+            <svg class="icon"><use href="/img/icons.svg#i-trash"></use></svg>删除
+          </button>
+        </div>
+        <textarea name="qStem" class="textarea qe-stem" placeholder="请输入题干"></textarea>
+        <div class="qe-opts" data-options>
+          <div class="qe-opt"><span class="k" data-opt-chip="A">A</span><input name="qOptionA" placeholder="选项 A"></div>
+          <div class="qe-opt"><span class="k" data-opt-chip="B">B</span><input name="qOptionB" placeholder="选项 B"></div>
+          <div class="qe-opt"><span class="k" data-opt-chip="C">C</span><input name="qOptionC" placeholder="选项 C（可空）"></div>
+          <div class="qe-opt"><span class="k" data-opt-chip="D">D</span><input name="qOptionD" placeholder="选项 D（可空）"></div>
+        </div>
+      </div>
+    </template>
+  </main>
+</div>
+<script>
+(function () {
+  'use strict';
+  var list = document.getElementById('questionList');
+  var template = document.getElementById('questionTemplate');
+  var empty = document.getElementById('questionEmpty');
+  var form = document.getElementById('assignmentForm');
+  var modeInput = document.getElementById('scoreMode');
+  var donut = document.querySelector('[data-score-donut]');
+  var legendBox = document.querySelector('[data-score-legend]');
+  var hintBox = document.querySelector('[data-score-hint]');
+  var centerValue = document.querySelector('[data-score-objective]');
+  var customBox = document.querySelector('[data-score-custom]');
+  var percentInputs = {
+    SINGLE: document.querySelector('input[name="singlePercent"]'),
+    MULTIPLE: document.querySelector('input[name="multiplePercent"]'),
+    JUDGE: document.querySelector('input[name="judgePercent"]'),
+    ATTACHMENT: document.querySelector('input[name="attachmentPercent"]')
+  };
+  var TYPES = ['SINGLE', 'MULTIPLE', 'JUDGE'];
+  var TYPE_TEXT = { SINGLE: '单选题', MULTIPLE: '多选题', JUDGE: '判断题' };
+  var COLORS = { SINGLE: '#5b5bd6', MULTIPLE: '#e8a33d', JUDGE: '#8b9a86', SUBJECTIVE: '#c4562a' };
+
+  function note(message) {
+    if (window.uiToast) window.uiToast(message, 'warn');
+    else alert(message);
+  }
+
+  function fmt(value) {
+    var rounded = Math.round(value * 100) / 100;
+    if (Math.abs(rounded - Math.round(rounded)) < 1e-9) return String(Math.round(rounded));
+    return String(rounded);
+  }
+
+  // 与服务端 ScoreCalculator 一致：精确到 0.01，尾差补给前面的题目
+  function splitCents(total, count) {
+    var parts = [];
+    if (count <= 0) return parts;
+    var cents = Math.round((total || 0) * 100);
+    var base = Math.floor(cents / count);
+    var remainder = cents - base * count;
+    for (var i = 0; i < count; i++) parts.push((base + (i < remainder ? 1 : 0)) / 100);
+    return parts;
+  }
+
+  function currentMode() {
+    return modeInput && modeInput.value === 'CUSTOM' ? 'CUSTOM' : 'EVEN';
+  }
+
+  function percentOf(type) {
+    var input = percentInputs[type];
+    var value = input ? parseFloat(input.value) : 0;
+    return isFinite(value) && value > 0 ? value : 0;
+  }
+
+  function questionRows() {
+    if (!list) return [];
+    return [].slice.call(list.querySelectorAll('[data-question]'));
+  }
+
+  function scoredRows() {
+    return questionRows().filter(function (row) {
+      var stem = row.querySelector('textarea[name="qStem"]');
+      return stem && stem.value.trim() !== '';
+    });
+  }
+
+  function setRowScore(row, value) {
+    var el = row.querySelector('[data-q-score]');
+    if (el) el.textContent = fmt(value);
+  }
+
+  function renumber() {
+    questionRows().forEach(function (row, index) {
+      var el = row.querySelector('[data-q-no]');
+      if (el) el.textContent = index + 1;
+    });
+  }
+
+  function renderDonut(segments) {
+    if (!donut) return;
+    var total = 0;
+    segments.forEach(function (seg) { total += Math.max(0, seg.value); });
+    // canvas 绘制：2 倍分辨率保证清晰
+    var size = 300, cx = size / 2;
+    var r = cx * (52 / 60), lineWidth = (15 / 120) * size;
+    donut.innerHTML = '<canvas width="' + size + '" height="' + size + '" style="width:100%;height:100%;display:block"></canvas>';
+    var canvas = donut.querySelector('canvas');
+    var ctx = canvas.getContext('2d');
+    // 底环
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = 'rgba(246,239,226,.13)';
+    ctx.beginPath();
+    ctx.arc(cx, cx, r, 0, Math.PI * 2);
+    ctx.stroke();
+    // 各分段：从 12 点方向开始，逆时针依次排布
+    ctx.lineCap = 'round';
+    var start = -Math.PI / 2;
+    segments.forEach(function (seg) {
+      var value = Math.max(0, seg.value);
+      if (value <= 0 || total <= 0) return;
+      var sweep = (value / total) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.strokeStyle = COLORS[seg.key];
+      ctx.arc(cx, cx, r, start, start - sweep, true);
+      ctx.stroke();
+      start -= sweep;
+    });
+  }
+
+  function renderLegend(segments) {
+    if (!legendBox) return;
+    var rows = scoredRows();
+    var html = '';
+    segments.forEach(function (seg) {
+      if (seg.value <= 0) return;
+      var count = 0;
+      if (seg.key !== 'SUBJECTIVE') {
+        count = rows.filter(function (row) {
+          return row.querySelector('select[name="qType"]').value === seg.key;
+        }).length;
+      }
+      html += '<div class="score-legend-row">' +
+        '<span class="dot" style="background:' + COLORS[seg.key] + '"></span>' +
+        '<span class="score-legend-name">' + seg.label + '</span>' +
+        '<span class="val">' + (count ? count + ' 题 · ' : '') + fmt(seg.value) + ' 分</span></div>';
+    });
+    legendBox.innerHTML = html || '<div class="muted small">暂无分值分配</div>';
+  }
+
+  // 占比池：当前启用的题型（有对应题目）+ 附件（已上传文件时）
+  function enabledPool() {
+    var pool = [];
+    TYPES.forEach(function (type) {
+      if (percentInputs[type] && !percentInputs[type].disabled) pool.push(type);
+    });
+    var fileInput = document.getElementById('attachment');
+    var hasFile = !!(fileInput && fileInput.files && fileInput.files.length);
+    if (hasFile && percentInputs.ATTACHMENT && !percentInputs.ATTACHMENT.disabled) pool.push('ATTACHMENT');
+    return pool;
+  }
+
+  // 自动分配：合计恒为 100%。规则：1 个=100；2 个=50/50；3 个=单选 40 其余 30（无单选则均分）；4 个及以上=均分
+  function autoDistribute(pool) {
+    if (!pool || !pool.length) return;
+    setAllPercents(0);
+    if (pool.length === 1) {
+      percentInputs[pool[0]].value = '100';
+    } else if (pool.length === 2) {
+      pool.forEach(function (k) { percentInputs[k].value = '50'; });
+    } else if (pool.length === 3 && pool.indexOf('SINGLE') >= 0) {
+      percentInputs.SINGLE.value = '40';
+      pool.filter(function (k) { return k !== 'SINGLE'; }).forEach(function (k) { percentInputs[k].value = '30'; });
+    } else {
+      var parts = splitCents(100, pool.length);
+      pool.forEach(function (k, i) { percentInputs[k].value = fmt(parts[i]); });
+    }
+  }
+
+  function setAllPercents(v) {
+    TYPES.concat(['ATTACHMENT']).forEach(function (k) {
+      if (percentInputs[k]) percentInputs[k].value = String(v);
+    });
+  }
+
+  // 追踪上一次的占比池，用于检测"新启用一种题型/附件"（池扩大）
+  var prevPool = null;
+
+  function updateScorePlan() {
+    var rows = scoredRows();
+    var fileInput = document.getElementById('attachment');
+    var hasFile = !!(fileInput && fileInput.files && fileInput.files.length);
+    // 未上传附件时，附件占比禁用并归零；上传后启用
+    if (!hasFile) {
+      if (percentInputs.ATTACHMENT && parseFloat(percentInputs.ATTACHMENT.value) > 0) percentInputs.ATTACHMENT.value = '0';
+      if (percentInputs.ATTACHMENT) percentInputs.ATTACHMENT.disabled = true;
+    } else if (percentInputs.ATTACHMENT) {
+      percentInputs.ATTACHMENT.disabled = false;
+    }
+    // 没有对应题型的题目时，该题型的占比输入框禁用并归零
+    TYPES.forEach(function (type) {
+      var input = percentInputs[type];
+      if (!input) return;
+      var hasType = rows.some(function (row) {
+        var sel = row.querySelector('select[name="qType"]');
+        return sel && sel.value === type;
+      });
+      if (!hasType) {
+        if (parseFloat(input.value) > 0) input.value = '0';
+        input.disabled = true;
+      } else {
+        input.disabled = false;
+      }
+    });
+    // 占比池扩大（新启用一种题型/上传附件）时自动重排，保证合计恒为 100%
+    var pool = enabledPool();
+    var poolKey = pool.slice().sort().join(',');
+    var prevCount = prevPool === null ? 0 : prevPool.split(',').filter(Boolean).length;
+    if (prevPool !== null && poolKey !== prevPool && pool.length > prevCount) {
+      autoDistribute(pool);
+    }
+    prevPool = poolKey;
+
+    var counts = { SINGLE: 0, MULTIPLE: 0, JUDGE: 0 };
+    rows.forEach(function (row) {
+      var type = row.querySelector('select[name="qType"]').value;
+      counts[type] = (counts[type] || 0) + 1;
+    });
+    var custom = currentMode() === 'CUSTOM';
+    var percents = { SINGLE: 0, MULTIPLE: 0, JUDGE: 0, ATTACHMENT: 0 };
+    if (custom) Object.keys(percents).forEach(function (key) { percents[key] = percentOf(key); });
+
+    var objectiveFull;
+    if (!rows.length) objectiveFull = 0;
+    else if (custom) objectiveFull = percents.SINGLE + percents.MULTIPLE + percents.JUDGE;
+    else objectiveFull = 100;
+    var totalPercent = objectiveFull + (custom ? percents.ATTACHMENT : 0);
+
+    if (rows.length) {
+      if (custom) {
+        TYPES.forEach(function (type) {
+          var group = rows.filter(function (row) {
+            return row.querySelector('select[name="qType"]').value === type;
+          });
+          if (!group.length) return;
+          var parts = splitCents(percents[type], group.length);
+          group.forEach(function (row, index) { setRowScore(row, parts[index]); });
+        });
+      } else {
+        var parts = splitCents(100, rows.length);
+        rows.forEach(function (row, index) { setRowScore(row, parts[index]); });
+      }
+      // 附件不参与题目分值拆分，占比由教师直接指定
+    }
+
+    var segments = [];
+    if (custom) {
+      TYPES.forEach(function (type) {
+        segments.push({ key: type, label: TYPE_TEXT[type], value: percents[type] });
+      });
+      segments.push({ key: 'SUBJECTIVE', label: '附件（主观题）', value: percents.ATTACHMENT });
+    } else if (!rows.length) {
+      segments.push({ key: 'SUBJECTIVE', label: '主观题/附件', value: 100 });
+    } else {
+      TYPES.forEach(function (type) {
+        if (!counts[type]) return;
+        segments.push({ key: type, label: TYPE_TEXT[type], value: counts[type] / rows.length * 100 });
+      });
+    }
+    renderDonut(segments);
+    renderLegend(segments);
+    if (centerValue) centerValue.textContent = fmt(Math.min(100, Math.max(0, objectiveFull)));
+    if (customBox) customBox.hidden = !custom;
+    document.querySelectorAll('[data-score-mode]').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-score-mode') === currentMode());
+    });
+    if (hintBox) {
+      hintBox.classList.remove('warn');
+      if (!rows.length) {
+        if (!hasFile) {
+          hintBox.textContent = '还没有可计分的内容：先「添加题目」或上传附件，再设置占比。';
+        } else {
+          hintBox.textContent = '暂无客观题：100 分全部作为附件（主观题）分，由教师批改时手动打分。';
+        }
+      } else if (custom) {
+        var rest = 100 - totalPercent;
+        if (objectiveFull === 0) {
+          hintBox.textContent = '客观题占比为 0：题目将全部不计分，分数全部在附件上。如需给题目打分，请调整各题型占比。';
+          hintBox.classList.add('warn');
+        } else if (rest < -0.0001) {
+          hintBox.textContent = '各题型与附件合计 ' + fmt(totalPercent) + '%，已超过 100%，请调整后再发布。';
+          hintBox.classList.add('warn');
+        } else if (rest > 0.0001) {
+          hintBox.textContent = '合计 ' + fmt(totalPercent) + '%（含附件 ' + fmt(percents.ATTACHMENT) + '%）；另有 ' + fmt(rest) + '% 未分配，不计分，建议补足到 100%。';
+        } else {
+          hintBox.textContent = '合计 100%（含附件 ' + fmt(percents.ATTACHMENT) + '%），批改时附件手动录入' + (hasFile ? '（已上传附件）' : '') + '。';
+        }
+      } else if (hasFile) {
+        hintBox.textContent = '已上传附件：平均分配模式下附件不计分（100 分全在客观题）。要给附件打分，请切换「按题型自定义」，剩余占比即附件分。';
+        hintBox.classList.add('warn');
+      } else {
+        hintBox.textContent = '每题 ' + fmt(100 / rows.length) + ' 分（四舍五入并补齐尾差，全对正好 100 分）。';
+      }
+    }
+  }
+
+  // 判断题只显示题干和答案；选择题显示 A~D 选项，并给出对应答案示例
+  function syncQuestionType(row) {
+    var select = row.querySelector('select[name="qType"]');
+    if (!select) return;
+    var type = select.value;
+    var options = row.querySelector('[data-options]');
+    if (options) options.style.display = (type === 'JUDGE') ? 'none' : '';
+    var correct = row.querySelector('input[name="qCorrect"]');
+    if (correct) {
+      correct.placeholder = type === 'MULTIPLE' ? 'A,B' : (type === 'JUDGE' ? '对 或 错' : 'A');
+    }
+    syncChips(row);
+  }
+
+  // 正确答案里出现的选项字母，高亮对应的选项芯片
+  function syncChips(row) {
+    var correct = row.querySelector('input[name="qCorrect"]');
+    var chips = row.querySelectorAll('[data-opt-chip]');
+    if (!chips.length) return;
+    var letters = [];
+    if (correct) {
+      letters = correct.value.split(/[,，]/).map(function (s) {
+        return s.trim().toUpperCase();
+      }).filter(Boolean);
+    }
+    [].forEach.call(chips, function (chip) {
+      chip.classList.toggle('on', letters.indexOf(chip.getAttribute('data-opt-chip')) >= 0);
+    });
+  }
+
+  function addQuestion(scrollTo) {
+    if (!list || !template) return;
+    list.appendChild(template.content.cloneNode(true));
+    var row = list.lastElementChild;
+    syncQuestionType(row);
+    renumber();
+    if (empty) empty.style.display = 'none';
+    if (scrollTo) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var stem = row.querySelector('textarea[name="qStem"]');
+    if (stem) stem.focus({ preventScroll: true });
+    updateScorePlan();
+  }
+
+  // 提交前逐题校验：题干、选择题选项 A/B、正确答案
+  function validateAllRows() {
+    var rows = questionRows();
+    for (var i = 0; i < rows.length; i++) {
+      var n = i + 1;
+      var row = rows[i];
+      var stem = row.querySelector('textarea[name="qStem"]');
+      if (!stem.value.trim()) {
+        note('第 ' + n + ' 题还没有填写题干，请填写或删除该题');
+        stem.focus();
+        return false;
+      }
+      var type = row.querySelector('select[name="qType"]').value;
+      if (type !== 'JUDGE') {
+        var a = row.querySelector('input[name="qOptionA"]');
+        var b = row.querySelector('input[name="qOptionB"]');
+        if (!a.value.trim() || !b.value.trim()) {
+          note('第 ' + n + ' 题至少需要填写选项 A 和选项 B');
+          (a.value.trim() ? b : a).focus();
+          return false;
+        }
+      }
+      var correct = row.querySelector('input[name="qCorrect"]');
+      if (!correct.value.trim()) {
+        note('第 ' + n + ' 题请填写正确答案');
+        correct.focus();
+        return false;
+      }
+    }
+    return true;
+  }
+
+  document.addEventListener('click', function (e) {
+    var add = e.target.closest('#addQuestionBtn');
+    if (add) { addQuestion(true); return; }
+    var action = e.target.closest('[data-question-action]');
+    if (!action) return;
+    var row = action.closest('[data-question]');
+    if (!row) return;
+    row.remove();
+    if (!questionRows().length && empty) empty.style.display = '';
+    renumber();
+    updateScorePlan();
+  });
+
+  if (list) {
+    list.querySelectorAll('[data-question]').forEach(function (row) {
+      syncQuestionType(row);
+    });
+    list.addEventListener('input', function (e) {
+      if (e.target && e.target.name === 'qCorrect') {
+        var row = e.target.closest('[data-question]');
+        if (row) syncChips(row);
+      }
+      updateScorePlan();
+    });
+    list.addEventListener('change', function (e) {
+      var row = e.target.closest('[data-question]');
+      if (row) syncQuestionType(row);
+      updateScorePlan();
+    });
+  }
+
+  document.querySelectorAll('[data-score-mode]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (modeInput) modeInput.value = btn.getAttribute('data-score-mode');
+      if (btn.getAttribute('data-score-mode') === 'CUSTOM') {
+        // 首次切入自定义且占比全为 0 时：按当前占比池自动分配（1 个=100，2 个=50/50，
+        // 3 个=单选 40 其余 30，4 个=均分 25）；教师之后可手动微调
+        var allZero = TYPES.concat(['ATTACHMENT']).every(function (k) {
+          return !percentInputs[k] || !(parseFloat(percentInputs[k].value) > 0);
+        });
+        if (allZero) {
+          autoDistribute(enabledPool());
+        }
+      }
+      updateScorePlan();
+    });
+  });
+
+  Object.keys(percentInputs).forEach(function (type) {
+    if (percentInputs[type]) percentInputs[type].addEventListener('input', updateScorePlan);
+  });
+
+  var attachInput = document.getElementById('attachment');
+  if (attachInput) attachInput.addEventListener('change', function () {
+    // 上传附件 = 占比池扩大，交给池扩大的自动分配处理
+    updateScorePlan();
+  });
+
+  function showModal(title, lines, okLabel, onOk, lockClose) {
+    var mask = document.createElement('div');
+    mask.className = 'modal-mask open';
+    var box = document.createElement('div');
+    box.className = 'modal';
+    var h3 = document.createElement('h3');
+    h3.textContent = title;
+    var para = document.createElement('p');
+    lines.forEach(function (t, idx) {
+      if (idx) para.appendChild(document.createElement('br'));
+      para.appendChild(document.createTextNode(t));
+    });
+    var actions = document.createElement('div');
+    actions.className = 'modal-actions';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn primary';
+    btn.textContent = okLabel || '知道了';
+    btn.addEventListener('click', function () { mask.remove(); if (onOk) onOk(); });
+    actions.appendChild(btn);
+    box.appendChild(h3); box.appendChild(para); box.appendChild(actions);
+    mask.appendChild(box);
+    document.body.appendChild(mask);
+    if (!lockClose) {
+      mask.addEventListener('click', function (ev) { if (ev.target === mask) { mask.remove(); if (onOk) onOk(); } });
+    }
+    return mask;
+  }
+
+  function parseServerErrors(html) {
+    var lines = [];
+    try {
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      doc.querySelectorAll('.flash.error span').forEach(function (el) {
+        var t = (el.textContent || '').trim();
+        if (t) lines.push(t);
+      });
+      doc.querySelectorAll('span[style*="color:#dc2626"]').forEach(function (el) {
+        var t = (el.textContent || '').trim();
+        if (t && lines.indexOf(t) < 0) lines.push(t);
+      });
+    } catch (ignored) {}
+    return lines;
+  }
+
+  var submitting = false;
+  var retriedOnce = false;
+  if (form) {
+    var isEditing = form.getAttribute('data-editing') === 'true';
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fileInput = document.getElementById('attachment');
+      var hasFile = !!(fileInput && fileInput.files && fileInput.files.length);
+      if (hasFile && fileInput.files[0].size > 50 * 1024 * 1024) {
+        showModal('无法提交', ['作业附件「' + fileInput.files[0].name + '」超过 50MB，请压缩后重新上传。'], '返回修改');
+        return;
+      }
+      if (!validateAllRows()) return;
+      if (currentMode() === 'CUSTOM') {
+        var typeSum = percentOf('SINGLE') + percentOf('MULTIPLE') + percentOf('JUDGE');
+        if (!scoredRows().length && typeSum > 0.0001) {
+          showModal('无法提交', ['本次作业还没有添加题目，题型占比不会计分。', '请先「添加题目」，或把各题型占比调回 0（附件占比仍可设置）。'], '返回修改');
+          return;
+        }
+        var sum = typeSum + percentOf('ATTACHMENT');
+        if (scoredRows().length && typeSum === 0) {
+          var okZero = window.confirm('客观题占比为 0：所有题目将不计分，100 分都在附件（主观题）上。确定这样发布吗？');
+          if (!okZero) return;
+        }
+        if (sum > 100.0001) {
+          showModal('无法提交', ['各题型与附件占比合计 ' + fmt(sum) + '%，已超过 100%，请调整后再发布。'], '返回修改');
+          return;
+        }
+        if (sum < 99.9999) {
+          var rest = fmt(100 - sum);
+          var ok = window.confirm('各题型与附件占比合计 ' + fmt(sum) + '%，剩余 ' + rest +
+            '% 未分配（不计分）。确定继续？');
+          if (!ok) return;
+        }
+      }
+      // 校验通过：改为 AJAX 提交。失败时页面不刷新，已填题目和附件全部保留，弹窗提示原因。
+      if (submitting) return;
+      submitting = true;
+      var submitBtn = form.querySelector('button[type="submit"]');
+      var oldHtml = submitBtn ? submitBtn.innerHTML : '';
+      var retried = retriedOnce;
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '提交中…'; }
+      var formData = new FormData(form);
+      fetch(form.action, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (res) {
+          var finalUrl = res.url || '';
+          if (/\/teacher\/courses\/\d+/.test(finalUrl)) {
+            var target = res.url;
+            showModal(isEditing ? '保存成功' : '发布成功',
+              [isEditing ? '作业已更新，即将返回课程页面…' : '作业已发布，即将返回课程页面…'],
+              '立即返回', function () { window.location.href = target; }, true);
+            setTimeout(function () { window.location.href = target; }, 1200);
+            return null;
+          }
+          if (res.redirected && /\/login/.test(finalUrl)) {
+            // 会话已失效：服务器把提交重定向到了登录页
+            showModal(isEditing ? '保存失败' : '发布失败',
+              ['登录状态已失效，请重新登录。本页已填写的内容仍然保留。'], '去重新登录',
+              function () { window.location.href = '/login'; });
+            failRestore();
+            return null;
+          }
+          if (res.status === 403) {
+            if (!retried) {
+              // 令牌可能已被轮换：重新拉取本页拿新令牌，自动重试一次（相当于系统帮你刷新）
+              retriedOnce = true;
+              fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r2) { return r2.text(); })
+                .then(function (html) {
+                  var doc = new DOMParser().parseFromString(html, 'text/html');
+                  var fresh = doc.querySelector('#assignmentForm input[name="_csrf"]');
+                  var current = form.querySelector('input[name="_csrf"]');
+                  if (fresh && current && fresh.value) {
+                    current.value = fresh.value;
+                    failRestore();
+                    if (form.requestSubmit) form.requestSubmit(submitBtn); else form.submit();
+                  } else {
+                    fail(['登录状态已失效，请刷新页面（F5）后重新提交']);
+                  }
+                })
+                .catch(function () { fail(['网络异常，请重试']); });
+              return null;
+            }
+            fail(['安全校验多次失败，请刷新页面（F5）后重新提交；若仍失败请退出后重新登录']);
+            return null;
+          }
+          return res.text().then(function (html) { fail(parseServerErrors(html)); });
+        })
+        .catch(function () { fail(['网络异常，提交未完成，请重试']); });
+
+      function failRestore() {
+        submitting = false;
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = oldHtml; }
+      }
+      function fail(lines, okLabel, onOk) {
+        failRestore();
+        showModal(isEditing ? '保存失败' : '发布失败',
+          lines.length ? lines : ['提交未成功，请检查题目和评分设置后重试。'],
+          okLabel || '返回修改', onOk);
+      }
+    });
+  }
+
+  updateScorePlan();
+})();
+</script>
+<button type="button" class="back-top fab-up" id="fabUp" title="回到顶部" aria-label="回到顶部">
+  <svg class="icon"><use href="/img/icons.svg#i-chevron-down"></use></svg>
+</button>
+<button type="button" class="back-top fab-down" id="fabDown" title="跳到底部" aria-label="跳到底部">
+  <svg class="icon"><use href="/img/icons.svg#i-chevron-down"></use></svg>
+</button>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('作答详情')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('TEACHER','review','作答详情')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbarBack(@{'/teacher/assignments/' + ${assignment.id} + '/submissions'}, '返回批改名单')}"></header>
+  <main class="content">
+    <div class="crumb">
+      <a th:href="@{/teacher/courses}">我的课程</a>
+      <svg class="icon"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+      <a th:href="@{'/teacher/courses/' + ${course.id}}" th:text="${course.name}">课程</a>
+      <svg class="icon"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+      <a th:href="@{'/teacher/assignments/' + ${assignment.id} + '/submissions'}">批改名单</a>
+      <svg class="icon"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+      <span class="current">作答详情</span>
+    </div>
+
+    <div class="page-head">
+      <div>
+        <h1 class="page-title" th:text="${assignment.title}">作业</h1>
+        <p class="page-sub">
+          学生 <b th:text="${student.name}">01</b>
+          <span class="dot-sep"></span>
+          <span th:text="${student.sno}">20240101</span>
+          <span class="dot-sep"></span>
+          客观题 <b th:text="${submission.objectiveScoreText}">0</b> / <span th:text="${assignment.objectiveFullText}">100</span> 分
+          <th:block th:if="${assignment.subjectiveScored}">
+            <span class="dot-sep"></span>
+            主观题 <b th:text="${submission.subjectiveScoreText != '' ? submission.subjectiveScoreText : '未录入'}">未录入</b> / <span th:text="${assignment.subjectiveFullText}">0</span> 分
+          </th:block>
+          <span class="dot-sep"></span>
+          合计
+          <b th:if="${submission.score != null}" th:text="${submission.scoreText} + ' 分'">0 分</b>
+          <b th:if="${submission.score == null}" class="muted">未完成批改</b>
+        </p>
+      </div>
+      <a class="btn ghost" th:href="@{'/teacher/assignments/' + ${assignment.id} + '/submissions'}">返回批改名单</a>
+    </div>
+
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="card" th:if="${#lists.isEmpty(questions)}" style="padding:40px;text-align:center">
+      <p class="muted">本次作业没有设置客观题，请直接在批改名单中打分。</p>
+    </div>
+
+    <section class="card" th:if="${not #lists.isEmpty(questions)}">
+      <div class="card-head">
+        <h2><span class="card-title-dot"></span>学生作答</h2>
+        <span class="muted small" th:text="${#lists.size(questions)} + ' 道题'">0</span>
+      </div>
+      <div class="card-body">
+        <article class="q-card" th:each="q, st : ${questions}" style="border:1px solid var(--border);margin-bottom:14px">
+          <div class="q-head">
+            <span class="q-no" th:text="${st.count}">1</span>
+            <div class="q-stem" th:text="${q.stem}">题干</div>
+            <span class="q-score" th:text="${q.scoreText} + ' 分'">10 分</span>
+          </div>
+          <div class="q-options">
+            <div class="opt" th:each="opt : ${q.optionList}"
+                 th:classappend="${#strings.contains(q.correctAnswer, opt['key'])} ? 'is-correct' : ''">
+              <span class="opt-key" th:text="${opt['key']}">A</span>
+              <span class="opt-text" th:text="${opt['text']}">选项</span>
+            </div>
+          </div>
+          <div class="ans-summary">
+            <span class="ans">
+              学生答案：
+              <b th:classappend="${q.scoreOf(answers[q.id]) > 0} ? 'ok' : 'bad'"
+                 th:text="${answers[q.id] ?: '未作答'}">A</b>
+            </span>
+            <span class="ans">正确答案：<b class="ok"
+                  th:text="${q.judge ? (q.correctAnswer == 'A' ? '对' : '错') : q.correctAnswer}">A</b></span>
+            <span class="verdict" th:classappend="${q.isCorrect(answers[q.id])} ? 'ok' : 'bad'">
+              <svg class="icon"><use th:href="|/img/icons.svg#${q.scoreOf(answers[q.id]) > 0 ? 'i-check-circle' : 'i-x-circle'}|"></use></svg>
+              <span class="got" th:text="${q.scoreOf(answers[q.id]).stripTrailingZeros().toPlainString()}">0</span> 分
+            </span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="card mt-20" th:if="${not #lists.isEmpty(gradeHistory)}">
+      <div class="card-head">
+        <h2><span class="card-title-dot"></span>历史成绩</h2>
+        <span class="muted small" th:text="${#lists.size(gradeHistory)} + ' 条记录'">0 条</span>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>得分</th><th>教师评语</th><th>批阅时间</th><th>该次提交时间</th></tr></thead>
+          <tbody>
+          <tr th:each="h : ${gradeHistory}">
+            <td><span class="score-cell" th:text="${h.scoreText} + ' 分'">85 分</span></td>
+            <td class="muted" th:text="${h.teacherComment ?: '—'}">评语</td>
+            <td th:text="${h.gradedText}">时间</td>
+            <td th:text="${h.attemptText}">时间</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card mt-20" th:if="${submission.content != null and !#strings.isEmpty(submission.content)}">
+      <div class="card-head"><h2><span class="card-title-dot"></span>提交说明</h2></div>
+      <div class="card-body"><p th:text="${submission.content}">说明</p></div>
+    </section>
+  </main>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

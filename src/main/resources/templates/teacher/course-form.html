@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('创建课程')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('TEACHER','courses','创建课程')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbarBack(@{/teacher/courses}, '返回我的课程')}"></header>
+  <main class="content">
+    <div class="crumb">
+      <a th:href="@{/teacher/courses}">我的课程</a>
+      <svg class="icon"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+      <span class="current">创建课程</span>
+    </div>
+
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">创建课程</h1>
+        <p class="page-sub">填写课程信息并选择授课班级，提交后由管理员审批</p>
+      </div>
+    </div>
+
+    <div class="form-layout">
+      <section class="card">
+        <div class="card-head"><h2><span class="card-title-dot"></span>课程信息</h2></div>
+        <form th:action="@{/teacher/courses}" method="post" th:object="${form}">
+          <div class="card-body">
+            <span class="flash error" th:if="${#fields.hasGlobalErrors()}" style="width:100%">
+              <svg class="icon"><use href="/img/icons.svg#i-alert"></use></svg>
+              <span th:each="err : ${#fields.globalErrors()}" th:text="${err}"></span>
+            </span>
+            <div class="form-grid">
+              <div class="field full">
+                <label for="name">课程名称 <span class="req">*</span></label>
+                <input id="name" class="input" th:field="*{name}" placeholder="例如：Web前端框架技术">
+                <span class="field-hint" th:if="${#fields.hasErrors('name')}" th:errors="*{name}" style="color:#dc2626"></span>
+              </div>
+              <div class="field full">
+                <label for="teacherName">教师姓名 <span class="req">*</span></label>
+                <input id="teacherName" class="input" th:field="*{teacherName}" readonly>
+                <span class="field-hint">默认使用当前登录教师姓名</span>
+                <span class="field-hint" th:if="${#fields.hasErrors('teacherName')}" th:errors="*{teacherName}" style="color:#dc2626"></span>
+              </div>
+              <div class="field">
+                <label for="year">开课时间 <span class="req">*</span></label>
+                <div class="center gap-8">
+                  <select id="year" class="select" th:field="*{year}" style="flex:1">
+                    <option th:each="y : ${years}" th:value="${y}" th:text="${y} + '年'">2026年</option>
+                  </select>
+                  <select class="select" th:field="*{term}" style="flex:1">
+                    <option value="上学期">上学期</option>
+                    <option value="下学期">下学期</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label for="classId">授课班级 <span class="req">*</span></label>
+                <select id="classId" class="select w-full" th:field="*{classId}">
+                  <option value="">请选择班级</option>
+                  <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.name + '（' + c.studentCount + '人）'}">班级</option>
+                </select>
+              </div>
+            </div>
+            <div class="aside-tip mt-20">
+              <svg class="icon icon-sm"><use href="/img/icons.svg#i-alert"></use></svg>
+              <span>课程提交后状态为「待审批」，管理员批准后学生才能看到该课程，教师才能发布作业。</span>
+            </div>
+          </div>
+          <div class="form-actions">
+            <a class="btn ghost" th:href="@{/teacher/courses}">取消</a>
+            <button type="submit" class="btn primary">
+              <svg class="icon"><use href="/img/icons.svg#i-send"></use></svg>提交审批
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="teacher-aside">
+        <div class="card card-pad">
+          <h3 class="block-title">开课说明</h3>
+          <div class="aside-list">
+            <div class="aside-line"><span>学期</span><b>20XX年 上/下学期</b></div>
+            <div class="aside-line"><span>班级人数</span><b>40 ~ 60 人</b></div>
+            <div class="aside-line"><span>审批</span><b>管理员</b></div>
+          </div>
+          <p class="muted small mt-12">课程结束后会自动排在列表后面，并标记为「已结束」。</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('批改中心')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('TEACHER','review','批改中心')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbar('批改中心')}"></header>
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">批改中心</h1>
+        <p class="page-sub">待批阅的提交共 <b th:text="${#lists.size(pending)}">0</b> 份</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+          <tr>
+            <th>课程</th>
+            <th>作业</th>
+            <th>学生</th>
+            <th>提交时间</th>
+            <th class="th-right">操作</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="s : ${pending}">
+            <td th:text="${s.courseName}">课程</td>
+            <td class="cell-main" th:text="${s.assignmentTitle}">作业</td>
+            <td th:text="${s.studentSno}">20240101</td>
+            <td th:text="${s.submittedText}">时间</td>
+            <td class="td-right">
+              <a class="btn light sm" th:href="@{'/teacher/assignments/' + ${s.assignmentId} + '/submissions'}">去批改</a>
+            </td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(pending)}">
+            <td colspan="5">
+              <div class="empty" style="padding:50px 20px">
+                <div class="empty-ico"><svg class="icon"><use href="/img/icons.svg#i-check-circle"></use></svg></div>
+                <h3>暂时没有待批改的作业</h3>
+                <p>学生提交后会出现在这里</p>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

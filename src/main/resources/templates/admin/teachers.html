@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('教师名册')}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('ADMIN','teachers','教师<em>名</em>册')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbar('教师名册')}"></header>
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">教师名册</h1>
+        <p class="page-sub">教师编号规则：HS + 6 位数字，共 <b th:text="${#lists.size(teachers)}">0</b> 位</p>
+      </div>
+      <div class="page-head-actions">
+        <form method="get" th:action="@{/admin/teachers}" class="toolbar">
+          <input class="input" name="keyword" th:value="${keyword}" placeholder="搜索编号/姓名" style="width:180px">
+          <button type="submit" class="btn ghost">搜索</button>
+        </form>
+      </div>
+    </div>
+
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <section class="card card-pad" style="margin-bottom:20px">
+      <h3 class="block-title">添加教师</h3>
+      <form th:action="@{/admin/teachers}" method="post" class="form-grid" style="gap:12px">
+        <div class="field"><label>教师编号</label><input class="input" name="tno" placeholder="HS010006" required></div>
+        <div class="field"><label>姓名</label><input class="input" name="name" placeholder="张卫" required></div>
+        <div class="field"><label>任教课程</label><input class="input" name="subject" placeholder="企业级项目开发" required></div>
+        <div class="field" style="justify-content:flex-end"><button class="btn primary" type="submit">添加</button></div>
+      </form>
+    </section>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>教师编号</th><th>姓名</th><th>任教课程</th><th class="th-right">操作</th></tr></thead>
+          <tbody>
+          <tr th:each="t : ${teachers}">
+            <td class="cell-strong" th:text="${t.tno}">HS010001</td>
+            <td colspan="2">
+              <form th:action="@{'/admin/teachers/' + ${t.id} + '/update'}" method="post" class="center gap-6">
+                <input class="input" name="name" th:value="${t.name}" style="height:32px;width:110px">
+                <input class="input" name="subject" th:value="${t.subject}" style="height:32px;width:220px">
+                <button class="btn light sm" type="submit">保存</button>
+              </form>
+            </td>
+            <td class="td-right muted">教师编号不可修改</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

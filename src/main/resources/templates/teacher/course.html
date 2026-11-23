@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${course.name})}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('TEACHER','courses','课程详情')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbarBack(@{/teacher/courses}, '返回我的课程')}"></header>
+  <main class="content">
+    <div class="crumb">
+      <a th:href="@{/teacher/courses}">我的课程</a>
+      <svg class="icon"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+      <span class="current" th:text="${course.name}">课程</span>
+    </div>
+
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <section class="course-hero card">
+      <div class="course-hero-cover" th:text="${#strings.substring(course.name,0,2)}">课程</div>
+      <div class="course-hero-main">
+        <div class="center gap-8">
+          <span class="badge" th:classappend="${course.statusBadge}" th:text="${course.statusText}">进行中</span>
+          <span class="badge gray" th:text="${course.termLabel}">学期</span>
+          <span class="badge blue" th:if="${course.status == 'PENDING'}">等待管理员审批</span>
+        </div>
+        <h1 th:text="${course.name}">Web前端框架技术</h1>
+        <p class="muted">
+          <span th:text="${course.className}">班级</span> ·
+          共 <b th:text="${#lists.size(assignments)}">0</b> 次作业 ·
+          <span th:text="${course.teacherName}">教师</span>
+        </p>
+      </div>
+      <div class="course-hero-actions" th:if="${course.status == 'APPROVED' and !course.ended}">
+        <a class="btn primary" th:href="@{'/teacher/courses/' + ${course.id} + '/assignments/new'}">
+          <svg class="icon"><use href="/img/icons.svg#i-plus"></use></svg>发布作业
+        </a>
+      </div>
+    </section>
+
+    <div class="grid-2col">
+      <section class="card">
+        <div class="card-head">
+          <h2><span class="card-title-dot"></span>作业管理</h2>
+          <span class="muted small" th:text="${#lists.size(assignments)} + ' 次作业'">0</span>
+        </div>
+        <div class="assignment-list">
+          <div class="assignment-row static" th:each="a : ${assignments}">
+            <div class="assignment-icon"><svg class="icon"><use href="/img/icons.svg#i-assignment"></use></svg></div>
+            <div class="assignment-main">
+              <div class="assignment-title">
+                <b th:text="${a.title}">作业</b>
+                <span class="badge gray" th:if="${a.expired}">已截止</span>
+              </div>
+              <div class="assignment-meta">
+                截止 <span th:text="${a.deadlineText}">时间</span> ·
+                提交 <b th:text="${a.submittedCount}">0</b>/<span th:text="${a.totalStudents}">0</span> ·
+                已批 <b th:text="${a.gradedCount}">0</b>
+              </div>
+            </div>
+            <div class="assignment-actions">
+              <a class="btn ghost sm" th:href="@{'/teacher/assignments/' + ${a.id} + '/submissions'}">批改</a>
+              <a class="btn light sm" th:href="@{'/teacher/assignments/' + ${a.id} + '/edit'}">编辑</a>
+              <form th:action="@{'/teacher/assignments/' + ${a.id} + '/delete'}" method="post" style="display:inline"
+                    onsubmit="return confirm('确定删除该作业？已提交的记录会一并删除')">
+                <button type="submit" class="btn danger sm">删除</button>
+              </form>
+            </div>
+          </div>
+          <div class="empty" th:if="${#lists.isEmpty(assignments)}" style="padding:40px 10px">
+            <div class="empty-ico"><svg class="icon"><use href="/img/icons.svg#i-inbox"></use></svg></div>
+            <h3>还没有作业</h3>
+            <p th:if="${course.status == 'APPROVED' and !course.ended}">点击右上角「发布作业」创建第一次作业</p>
+            <p th:unless="${course.status == 'APPROVED' and !course.ended}">课程审批通过且未结束后才能发布作业</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2><span class="card-title-dot"></span>课程公告</h2>
+          <span class="muted small" th:text="${#lists.size(announcements)} + ' 条'">0</span>
+        </div>
+        <div class="card-body">
+          <form th:action="@{'/teacher/courses/' + ${course.id} + '/announcements'}" method="post"
+                th:object="${announcementForm}" class="announce-form">
+            <div class="field">
+              <input class="input" th:field="*{title}" placeholder="公告标题">
+            </div>
+            <div class="field mt-8">
+              <textarea class="textarea" th:field="*{content}" placeholder="公告内容" style="min-height:80px"></textarea>
+            </div>
+            <div class="between mt-8">
+              <label class="check"><input type="checkbox" th:field="*{pinned}"> 置顶显示</label>
+              <button type="submit" class="btn primary sm">发布公告</button>
+            </div>
+          </form>
+
+          <div class="announce-item" th:each="a : ${announcements}">
+            <div class="announce-head">
+              <span class="badge orange" th:if="${a.pinned}">置顶</span>
+              <b th:text="${a.title}">公告</b>
+              <span class="muted small" th:text="${a.createdText}">时间</span>
+              <form th:action="@{'/teacher/announcements/' + ${a.id} + '/delete'}" method="post" style="margin-left:auto">
+                <input type="hidden" name="courseId" th:value="${course.id}">
+                <button type="submit" class="btn-link" style="color:#dc2626">删除</button>
+              </form>
+            </div>
+            <p th:text="${a.content}">内容</p>
+          </div>
+          <div class="muted small" th:if="${#lists.isEmpty(announcements)}">还没有公告</div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<button type="button" class="back-top" id="backTop" title="回到顶部" aria-label="回到顶部">
+  <svg class="icon"><use href="/img/icons.svg#i-chevron-down"></use></svg>
+</button>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

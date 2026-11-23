@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${course.name})}"></head>
+<body class="app">
+<aside class="sidebar" th:replace="~{fragments/layout :: sidebar('STUDENT','courses','课程详情')}"></aside>
+<div class="main">
+  <header class="topbar" th:replace="~{fragments/layout :: topbarBack(@{/student/courses}, '返回我的课程')}"></header>
+  <main class="content">
+    <div class="crumb">
+      <a th:href="@{/student/courses}">我的课程</a>
+      <svg class="icon"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+      <span class="current" th:text="${course.name}">课程</span>
+      <a class="btn ghost sm" th:href="@{/student/courses}" style="margin-left:auto">
+        <svg class="icon"><use href="/img/icons.svg#i-arrow-left"></use></svg>返回课程
+      </a>
+    </div>
+
+    <section class="course-hero card">
+      <div class="course-hero-cover" th:text="${#strings.substring(course.name,0,2)}">课程</div>
+      <div class="course-hero-main">
+        <div class="center gap-8">
+          <span class="badge" th:classappend="${course.statusBadge}" th:text="${course.statusText}">进行中</span>
+          <span class="badge gray" th:text="${course.termLabel}">2026年 上学期</span>
+        </div>
+        <h1 th:text="${course.name}">Web前端框架技术</h1>
+        <p class="muted">
+          <span th:text="${course.teacherName}">詹昌明</span> ·
+          <span th:text="${course.className}">2024级网络技术1班</span> ·
+          共 <b th:text="${#lists.size(assignments)}">0</b> 次作业
+        </p>
+      </div>
+    </section>
+
+    <div class="grid-2col">
+      <section class="card">
+        <div class="card-head">
+          <h2><span class="card-title-dot"></span>课程公告</h2>
+          <span class="muted small" th:text="${#lists.size(announcements)} + ' 条'">0 条</span>
+        </div>
+        <div class="card-body" style="padding-top:8px">
+          <div class="announce-item" th:each="a : ${announcements}">
+            <div class="announce-head">
+              <span class="badge orange" th:if="${a.pinned}">置顶</span>
+              <b th:text="${a.title}">公告标题</b>
+              <span class="muted small" th:text="${a.createdText}">2026-01-01</span>
+            </div>
+            <p th:text="${a.content}">公告内容</p>
+          </div>
+          <div class="empty" th:if="${#lists.isEmpty(announcements)}" style="padding:36px 10px">
+            <div class="empty-ico"><svg class="icon"><use href="/img/icons.svg#i-message"></use></svg></div>
+            <h3>暂无课程公告</h3>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2><span class="card-title-dot"></span>作业列表</h2>
+          <span class="muted small" th:text="${#lists.size(assignments)} + ' 次作业'">0</span>
+        </div>
+        <div class="assignment-list">
+          <a class="assignment-row" th:each="a : ${assignments}" th:href="@{'/student/assignments/' + ${a.id}}">
+            <div class="assignment-icon"><svg class="icon"><use href="/img/icons.svg#i-assignment"></use></svg></div>
+            <div class="assignment-main">
+              <div class="assignment-title">
+                <b th:text="${a.title}">实验一</b>
+                <span class="badge gray" th:if="${a.expired}">已截止</span>
+              </div>
+              <div class="assignment-meta">
+                截止 <span th:text="${a.deadlineText}">2026-11-20</span>
+                <span th:if="${a.hasAttachment}">· 有附件</span>
+              </div>
+            </div>
+            <div class="assignment-status" th:with="s=${a.mySubmission}">
+              <span class="badge green" th:if="${s != null and s.published}">已批阅</span>
+              <span class="badge orange" th:if="${s != null and !s.published and s.status == 'SUBMITTED'}">已提交</span>
+              <span class="badge gray" th:if="${s == null or s.status == 'MISSING'}">未提交</span>
+              <strong class="score-cell" th:if="${s != null and s.published}" th:text="${s.scoreText} + ' 分'">92 分</strong>
+            </div>
+            <svg class="icon hw-arrow"><use href="/img/icons.svg#i-chevron-right"></use></svg>
+          </a>
+          <div class="empty" th:if="${#lists.isEmpty(assignments)}" style="padding:36px 10px">
+            <div class="empty-ico"><svg class="icon"><use href="/img/icons.svg#i-inbox"></use></svg></div>
+            <h3>老师还没有发布作业</h3>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<button type="button" class="back-top" id="backTop" title="回到顶部" aria-label="回到顶部">
+  <svg class="icon"><use href="/img/icons.svg#i-chevron-down"></use></svg>
+</button>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>
