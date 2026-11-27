@@ -1,6 +1,11 @@
 # 生产环境：MySQL 8 + Redis + 邮件
 # 首次部署请先执行 db/mysql-schema.sql 建表
 spring:
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          max-age: 7d
   datasource:
     url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/kys?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false}
     driver-class-name: com.mysql.cj.jdbc.Driver
